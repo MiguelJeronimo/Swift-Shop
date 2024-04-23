@@ -13,6 +13,11 @@
         android:theme="@style/Theme.SwiftShop"
         tools:targetApi="31">
         <activity
+            android:name=".Views.ShoppingList"
+            android:exported="false"
+            android:label="@string/title_activity_shopping_list"
+            android:theme="@style/Theme.SwiftShop" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
