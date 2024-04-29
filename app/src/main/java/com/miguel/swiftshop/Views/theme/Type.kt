@@ -1,4 +1,4 @@
-package com.miguel.swiftshop.Views.ui.theme
+package com.miguel.swiftshop.Views.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

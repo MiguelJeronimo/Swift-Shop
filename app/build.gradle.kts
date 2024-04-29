@@ -59,6 +59,12 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     // Declare the dependency for the Firebase Authentication library
     implementation ("com.google.firebase:firebase-auth-ktx")
+    //MVVM
+    // ViewModel
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+    // LiveData
+    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+    implementation ("androidx.datastore:datastore-preferences:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

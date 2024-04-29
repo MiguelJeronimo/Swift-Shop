@@ -1,9 +1,9 @@
 package com.miguel.swiftshop
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -42,45 +42,99 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.miguel.swiftshop.ui.theme.SwiftShopTheme
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.lifecycleScope
+import com.miguel.swiftshop.Views.ShoppingList
+import com.miguel.swiftshop.Views.ViewModels.ViewModelLogin
+import com.miguel.swiftshop.Views.theme.SwiftShopTheme
+import com.miguel.swiftshop.data.SettingsDataStore
+import com.miguel.swiftshop.models.User
+import com.miguel.swiftshop.models.UserData
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+    lateinit var stateForms: MutableState<Int>
+    lateinit var isError: MutableState<Boolean>
+    lateinit var typeError: MutableState<Int>
+    lateinit var viewModelLogin: ViewModelLogin
+    lateinit var settingsDataStore: SettingsDataStore
+    lateinit var uuii: UUID
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        FirebaseApp.initializeApp(applicationContext)
-//        val db = Firebase.firestore
-//        db.collection("users")
-//            .get()
-//            .addOnSuccessListener { result ->
-//               for (document in result){
-//                   println("DATA: ${document.data}")
-//               }
-//            }
-//            .addOnFailureListener { exception ->
-//                Log.w(TAG, "Error getting documents.", exception)
-//            }
+        settingsDataStore = SettingsDataStore(context = this)
+        viewModelLogin = ViewModelProvider(this)[ViewModelLogin::class.java]
+        uuii = UUID.randomUUID()
+        println(uuii)
+        //FirebaseApp.initializeApp(applicationContext)
         setContent {
             SwiftShopTheme {
-                val stateForms = remember{ mutableStateOf(0) }
-                Scaffold(topBar = { DropDownMenu(stateForms) }){
+                stateForms = remember { mutableStateOf(2) }
+                isError= remember { mutableStateOf(false) }
+                typeError = remember{ mutableStateOf(0) }
+                val userDataState = remember { mutableStateOf(UserData(null, null, null,null)) }
+                viewModelLogin.login.observe(this, Observer {
+                    stateForms.value = it
+                })
+                settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
+                    if (it){
+                        Intent(applicationContext, ShoppingList::class.java).also {
+                            it.putExtra("nameUser",viewModelLogin.user.value?.name)
+                            it.putExtra("secondNameUser",viewModelLogin.user.value?.apellidos)
+                            it.putExtra("emailUser",viewModelLogin.user.value?.email)
+                            it.putExtra("idCollection",viewModelLogin.user.value?.idCollection)
+                            startActivity(it)
+                        }
+                    }
+                })
+                viewModelLogin.user.observe(this, Observer {
+                    if(it != null){
+                        val userData = UserData(
+                            it.name,
+                            it.apellidos,
+                            it.email,
+                            it.idCollection
+                        )
+                        userDataState.value = userData
+                        viewModelLogin.stateLogin(3)
+                    }
+                })
+                Scaffold(topBar = { DropDownMenu(viewModelLogin) }){
                     Column(
                         Modifier.verticalScroll(rememberScrollState())
                     ) {
                         when(stateForms.value){
-                            0-> Login()
-                            1-> UserRegisterForm()
+                            0-> Login(viewModelLogin, isError,typeError)
+                            1-> {UserRegisterForm()}
+                            3->{
+                                //go to darshboard
+                                lifecycleScope.launch {
+                                    settingsDataStore.saveUserPreferences(userDataState.value.idCollection,applicationContext)
+                                    settingsDataStore.saveStatusloginPreferences(true,applicationContext)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        println("ONRESUME")
+        viewModelLogin.stateLogin(0)
+
+    }
 }
 
+
 @Composable
-fun Login(){
+fun Login(stateForms: ViewModelLogin?, isError: MutableState<Boolean>?, typeError: MutableState<Int>?) {
     Box(
         Modifier
             .fillMaxSize()
@@ -91,9 +145,9 @@ fun Login(){
                 .align(Alignment.Center)
                 .fillMaxWidth()){
             val textStateEmail = remember { mutableStateOf("") } // Initialize the state variable
-            val textStateConfirmEmail = remember { mutableStateOf("") }
+            val textStatePassword = remember { mutableStateOf("") }
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                 contentDescription = "Icon App",
                 Modifier
                     .align(Alignment.CenterHorizontally)
@@ -104,9 +158,22 @@ fun Login(){
                 Modifier.align(alignment = Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.displaySmall
             )
-            TextField("email",textStateEmail,0)
-            TextField("Password",textStateConfirmEmail,1)
-            Button(onClick = { /*TODO*/ },
+            TextField("email",textStateEmail,0, isError!!)
+            TextField("Password",textStatePassword,1,isError)
+            when(typeError?.value){
+                1->{TextError(message = "Ingresa tu usuario y contraseña")}
+                2->{TextError(message = "Usuario y contraseña no validos")}
+            }
+            Button(onClick = {
+                if (textStateEmail.value.isEmpty() && textStatePassword.value.isEmpty()){
+                    isError.value = true
+                    typeError?.value = 1
+                } else{
+                    isError.value = false
+                    typeError?.value = 0
+                    stateForms?.user(textStateEmail.value, textStatePassword.value)
+                }
+            },
                 Modifier
                     .align(alignment = Alignment.CenterHorizontally)
                     .fillMaxWidth()
@@ -133,8 +200,10 @@ fun UserRegisterForm(){
             val textStateSecondName = remember { mutableStateOf("") } // Initialize the state variable
             val textStateEmail = remember { mutableStateOf("") } // Initialize the state variable
             val textStateConfirmEmail = remember { mutableStateOf("") }
+            val isError= remember { mutableStateOf(false) }
+            val typeError = remember{ mutableStateOf(0) }
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                 contentDescription = "Icon App",
                 Modifier
                     .align(Alignment.CenterHorizontally)
@@ -145,11 +214,15 @@ fun UserRegisterForm(){
                 Modifier.align(alignment = Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.displaySmall
             )
-            TextField("Nombre",textStateName,0)
-            TextField("Apellidos",textStateSecondName,0)
-            TextField("email",textStateEmail,0)
-            TextField("Password",textStateConfirmEmail,1)
-            TextField("confirmar password",textStateConfirmEmail,1)
+            TextField("Nombre",textStateName,0,isError)
+            TextField("Apellidos",textStateSecondName,0,isError)
+            TextField("email",textStateEmail,0,isError)
+            TextField("Password",textStateConfirmEmail,1,isError)
+            TextField("confirmar password",textStateConfirmEmail,1,isError)
+            when(typeError.value){
+                1->{TextError(message = "Ingresa tu usuario y contraseña")}
+                2->{TextError(message = "Usuario y contraseña no validos")}
+            }
             Button(onClick = { /*TODO*/ },
                 Modifier
                     .align(alignment = Alignment.CenterHorizontally)
@@ -163,25 +236,36 @@ fun UserRegisterForm(){
 }
 
 @Composable
-fun TextField(label: String, text: MutableState<String>, inputType: Int){
+fun TextError(message:String){
+    Text(
+        text = message,
+        Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
+        color = MaterialTheme.colorScheme.error
+    )
+}
+
+@Composable
+fun TextField(label: String, text: MutableState<String>, inputType: Int, isError: MutableState<Boolean>){
     when(inputType){
         0->{
             OutlinedTextField(
-                value = text.value,
+                value = text.value.trim(),
                 onValueChange = { text.value = it },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth(1F)
                     .padding(10.dp, 0.dp, 10.dp, 0.dp),
                 label = { Text(text = label) },
+                isError = if(isError.value) true else false
                 //placeholder = { Text(text = label) },
             )
         }
         1->{
             OutlinedTextField(
-                value = text.value,
+                value = text.value.trim(),
                 onValueChange = { text.value = it },
                 singleLine = true,
+                isError = if(isError.value) true else false,
                 trailingIcon = {
                     Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "")
                 },
@@ -198,7 +282,7 @@ fun TextField(label: String, text: MutableState<String>, inputType: Int){
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-fun DropDownMenu(stateForms: MutableState<Int>?) {
+fun DropDownMenu(stateForms: ViewModelLogin?) {
     var expanded by remember { mutableStateOf(false) }
     val contextForToast = LocalContext.current.applicationContext
     Row (Modifier.fillMaxWidth(1f)){
@@ -216,7 +300,7 @@ fun DropDownMenu(stateForms: MutableState<Int>?) {
                             Text("Iniciar sesión")
                         },
                             onClick = {
-                                stateForms?.value  = 0
+                                stateForms?.stateLogin(0)
                                 expanded = false
                             })
                         DropdownMenuItem(text = {
@@ -224,7 +308,7 @@ fun DropDownMenu(stateForms: MutableState<Int>?) {
                         },
                             onClick = {
                                 expanded = false
-                                stateForms?.value  = 1
+                                stateForms?.stateLogin(1)
                             }
                         )
                     }
@@ -244,8 +328,8 @@ fun GreetingPreview() {
     SwiftShopTheme {
         Scaffold(topBar = { DropDownMenu(null) }){
             Column {
-                Login()
-                //UserRegisterForm()
+                //Login(null, null, null)
+                UserRegisterForm()
             }
         }
     }

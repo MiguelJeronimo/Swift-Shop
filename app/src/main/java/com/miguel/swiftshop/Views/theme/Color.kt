@@ -1,4 +1,4 @@
-package com.miguel.swiftshop.ui.theme
+package com.miguel.swiftshop.Views.theme
 
 import androidx.compose.ui.graphics.Color
 
