@@ -42,6 +42,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,10 +63,17 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.Timestamp
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
+import com.miguel.swiftshop.models.UserList
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 
 class ShoppingList : ComponentActivity() {
@@ -80,8 +88,12 @@ class ShoppingList : ComponentActivity() {
         val secondNameUser = intent.extras?.getString("secondNameUser").toString()
         val emailUser = intent.extras?.getString("emailUser").toString()
         val idCollectionList = intent.extras?.getString("idCollection").toString()
+        val date = Timestamp(1714416433,  533000000).toDate().time
+//        val formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy, hh:mm:ss a 'UTC-6'")
+        println("FECHA: "+date)
         setContent {
             SwiftShopTheme {
+                val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()
@@ -93,32 +105,13 @@ class ShoppingList : ComponentActivity() {
                         viewModelUserList.userLists(it.toString())
                     }
                 })
-                val list = listOf(
-                    ListProduct("Aurrera", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Chedraui", "19/04/2024"),
-                    ListProduct("Aurrera", "19/04/2024"),
-                    ListProduct("Aurrera", "19/04/2024"),
-                    ListProduct("Aurrera", "19/04/2024"),
-                    ListProduct("Algo", "19/04/2024")
-                )
+
+                viewModelUserList.list.observe(this, Observer {
+                    if (it!=null){
+                        listDataState.value=it
+                    }
+                })
+
                 Scaffold(
                     topBar = { toobar() },
                     floatingActionButton = { FloatButton() },
@@ -130,7 +123,7 @@ class ShoppingList : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
                         Divider()
-                        ShoppingList(list)
+                        ShoppingList(listDataState)
                     }
                 }
             }
@@ -146,9 +139,9 @@ class ShoppingList : ComponentActivity() {
     @SuppressLint("NotConstructor")
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun ShoppingList(list: List<ListProduct>) {
+    fun ShoppingList(list: MutableState<List<UserList>>?) {
         LazyColumn(Modifier.fillMaxHeight()) {
-            items(list){
+            items(list!!.value){
                 ItemList(it)
             }
         }
@@ -156,7 +149,10 @@ class ShoppingList : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun ItemList(list: ListProduct) {
+    fun ItemList(list: UserList) {
+        val date = list.date?.toDate()
+        val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
+        val formattedDate = dateFormat.format(date)
         Card(
             onClick = { /* Do something */ },
             Modifier
@@ -170,7 +166,7 @@ class ShoppingList : ComponentActivity() {
                     .fillMaxSize()
                     .padding(5.dp)) {
                 Text(
-                    list.nameList,
+                    list.name.toString(),
                     Modifier
                         .align(Alignment.CenterStart)
                         .fillMaxWidth()
@@ -178,7 +174,7 @@ class ShoppingList : ComponentActivity() {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    list.date,
+                    formattedDate,
                     Modifier.align(Alignment.CenterEnd),
                     fontStyle = FontStyle.Italic
                 )
@@ -355,31 +351,10 @@ class ShoppingList : ComponentActivity() {
     @Composable
     fun GreetingPreview() {
         val list = listOf(
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Chedraui", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024"),
-            ListProduct("Aurrera", "19/04/2024")
+            UserList("i1289askjdnk","Aurrera", Timestamp(1714416433,  533000000))
         )
+        val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
+        listDataState.value = list
         SwiftShopTheme {
             Scaffold(
                 topBar = { toobar() },
@@ -393,7 +368,7 @@ class ShoppingList : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Divider()
-                    ShoppingList(list)
+                    ShoppingList(listDataState)
                 }
             }
         }

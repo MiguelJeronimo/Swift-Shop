@@ -8,11 +8,15 @@ data class UserData(
     var email: String?,
     var idCollection:String?
 )
-
 data class UserList(
-    val idDocument: String?,
-    val name: String?,
-    val date: Timestamp?
+    var idDocument: String?,
+    var name: String?,
+    var date:  com.google.firebase.Timestamp?
+)
+//models to firebase data
+data class ListData(
+    var name: String?=null,
+    var date: com.google.firebase.Timestamp?=null
 )
 
 data class User(

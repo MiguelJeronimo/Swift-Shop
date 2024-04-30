@@ -4,9 +4,11 @@ import androidx.lifecycle.MutableLiveData
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.toObject
+import com.miguel.swiftshop.models.ListData
 import com.miguel.swiftshop.models.User
 import com.miguel.swiftshop.models.UserData
 import com.miguel.swiftshop.models.UserList
+import java.sql.Timestamp
 
 class UsersRepository {
    fun getUser(email: String, password: String, user: MutableLiveData<UserData>){
@@ -33,18 +35,26 @@ class UsersRepository {
            }
    }
 
-    fun getAllUserList(idUserCollection: String){
+    fun getAllUserList(idUserCollection: String, _list: MutableLiveData<ArrayList<UserList>>){
         val db = Firebase.firestore
-        val userList = UserList(null, null, null)
+        val userList = ArrayList<UserList>()
         db.collection("users").document(idUserCollection).collection("list").get()
             .addOnSuccessListener {
                 it.forEach {
-                    println("LISTA: ${it.data}")
+                    val documentsData = it.toObject<ListData>()
+                   userList.add(
+                       UserList(
+                           it.id,
+                           documentsData.name,
+                           documentsData.date
+                       )
+                   )
                 }
+                _list.value = userList
             }
             .addOnFailureListener { exception ->
+                _list.value = null
                 println("Error${exception}")
-                //user.value = null
             }
     }
 }
