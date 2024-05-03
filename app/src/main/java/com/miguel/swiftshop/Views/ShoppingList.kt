@@ -64,10 +64,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.Timestamp
+import com.miguel.swiftshop.R
+import com.miguel.swiftshop.Views.Components.ShoppingListComponet
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
 import com.miguel.swiftshop.models.UserList
+import com.miguel.swiftshop.utils.CodeEncode
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -79,18 +82,12 @@ import java.util.Locale
 class ShoppingList : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var viewModelUserList: ViewModelHome
+    val shippingList = ShoppingListComponet()
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsDataStore = SettingsDataStore(context = this)
         viewModelUserList = ViewModelProvider(this)[ViewModelHome::class.java]
-        val nameUser = intent.extras?.getString("nameUser").toString()
-        val secondNameUser = intent.extras?.getString("secondNameUser").toString()
-        val emailUser = intent.extras?.getString("emailUser").toString()
-        val idCollectionList = intent.extras?.getString("idCollection").toString()
-        val date = Timestamp(1714416433,  533000000).toDate().time
-//        val formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy, hh:mm:ss a 'UTC-6'")
-        println("FECHA: "+date)
         setContent {
             SwiftShopTheme {
                 val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
@@ -100,7 +97,6 @@ class ShoppingList : ComponentActivity() {
                     }
                 })
                 settingsDataStore.preferencesFlowUsers.asLiveData().observe(this, Observer {
-                    println("DATASTORE: ${it}")
                     if (it!=null && it.toString().isNotEmpty()){
                         viewModelUserList.userLists(it.toString())
                     }
@@ -123,7 +119,7 @@ class ShoppingList : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
                         Divider()
-                        ShoppingList(listDataState)
+                        shippingList.ShoppingList(listDataState)
                     }
                 }
             }
@@ -136,51 +132,6 @@ class ShoppingList : ComponentActivity() {
         finishAffinity(); // Termina la pila de actividades
     }
     data class ListProduct(val nameList: String, val date: String)
-    @SuppressLint("NotConstructor")
-    @RequiresApi(Build.VERSION_CODES.O)
-    @Composable
-    fun ShoppingList(list: MutableState<List<UserList>>?) {
-        LazyColumn(Modifier.fillMaxHeight()) {
-            items(list!!.value){
-                ItemList(it)
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun ItemList(list: UserList) {
-        val date = list.date?.toDate()
-        val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
-        val formattedDate = dateFormat.format(date)
-        Card(
-            onClick = { /* Do something */ },
-            Modifier
-                .fillMaxWidth()
-                .size(width = 180.dp, height = 80.dp)
-                .padding(5.dp)
-        )
-        {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(5.dp)) {
-                Text(
-                    list.name.toString(),
-                    Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    formattedDate,
-                    Modifier.align(Alignment.CenterEnd),
-                    fontStyle = FontStyle.Italic
-                )
-            }
-        }
-    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
@@ -368,7 +319,7 @@ class ShoppingList : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Divider()
-                    ShoppingList(listDataState)
+                    shippingList.ShoppingList(listDataState)
                 }
             }
         }

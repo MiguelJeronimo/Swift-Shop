@@ -50,10 +50,12 @@ import com.miguel.swiftshop.Views.ShoppingList
 import com.miguel.swiftshop.Views.ViewModels.ViewModelLogin
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
-import com.miguel.swiftshop.models.User
 import com.miguel.swiftshop.models.UserData
+import com.miguel.swiftshop.utils.CodeEncode
 import kotlinx.coroutines.launch
 import java.util.UUID
+import android.util.Base64
+import com.miguel.swiftshop.models.UserDataInsertModel
 
 class MainActivity : ComponentActivity() {
     lateinit var stateForms: MutableState<Int>
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
     lateinit var viewModelLogin: ViewModelLogin
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var uuii: UUID
+    val codeDecode = CodeEncode()
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,37 +72,40 @@ class MainActivity : ComponentActivity() {
         settingsDataStore = SettingsDataStore(context = this)
         viewModelLogin = ViewModelProvider(this)[ViewModelLogin::class.java]
         uuii = UUID.randomUUID()
-        println(uuii)
+        val public_key = resources.openRawResource(R.raw.publickey)
+        val publicKey = codeDecode.readKey(public_key)
+        val private_key = resources.openRawResource(R.raw.privatekey)
+        val privateKey = codeDecode.readKey(private_key)
         //FirebaseApp.initializeApp(applicationContext)
         setContent {
             SwiftShopTheme {
                 stateForms = remember { mutableStateOf(2) }
                 isError= remember { mutableStateOf(false) }
                 typeError = remember{ mutableStateOf(0) }
-                val userDataState = remember { mutableStateOf(UserData(null, null, null,null)) }
+                val userDataState = remember { mutableStateOf(UserData(null, null, null,null,null)) }
                 viewModelLogin.login.observe(this, Observer {
                     stateForms.value = it
                 })
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (it){
                         Intent(applicationContext, ShoppingList::class.java).also {
-                            it.putExtra("nameUser",viewModelLogin.user.value?.name)
-                            it.putExtra("secondNameUser",viewModelLogin.user.value?.apellidos)
-                            it.putExtra("emailUser",viewModelLogin.user.value?.email)
-                            it.putExtra("idCollection",viewModelLogin.user.value?.idCollection)
                             startActivity(it)
                         }
                     }
                 })
+
                 viewModelLogin.user.observe(this, Observer {
                     if(it != null){
+                        println("DATA USER $it")
                         val userData = UserData(
                             it.name,
                             it.apellidos,
                             it.email,
-                            it.idCollection
+                            null,
+                            it.idCollection,
                         )
                         userDataState.value = userData
+                        println("USERSTATE $userDataState")
                         viewModelLogin.stateLogin(3)
                     }
                 })
@@ -108,12 +114,12 @@ class MainActivity : ComponentActivity() {
                         Modifier.verticalScroll(rememberScrollState())
                     ) {
                         when(stateForms.value){
-                            0-> Login(viewModelLogin, isError,typeError)
-                            1-> {UserRegisterForm()}
+                            0-> Login(viewModelLogin, isError,typeError,privateKey)
+                            1-> {UserRegisterForm(viewModelLogin, isError,typeError, publicKey)}
                             3->{
                                 //go to darshboard
                                 lifecycleScope.launch {
-                                    settingsDataStore.saveUserPreferences(userDataState.value.idCollection,applicationContext)
+                                    settingsDataStore.saveUserPreferences(userDataState.value.idCollection.toString(),applicationContext)
                                     settingsDataStore.saveStatusloginPreferences(true,applicationContext)
                                 }
                             }
@@ -134,7 +140,12 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun Login(stateForms: ViewModelLogin?, isError: MutableState<Boolean>?, typeError: MutableState<Int>?) {
+fun Login(
+    stateForms: ViewModelLogin?,
+    isError: MutableState<Boolean>?,
+    typeError: MutableState<Int>?,
+    privateKey: String?
+) {
     Box(
         Modifier
             .fillMaxSize()
@@ -158,8 +169,8 @@ fun Login(stateForms: ViewModelLogin?, isError: MutableState<Boolean>?, typeErro
                 Modifier.align(alignment = Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.displaySmall
             )
-            TextField("email",textStateEmail,0, isError!!)
-            TextField("Password",textStatePassword,1,isError)
+            TextField("email",textStateEmail,null,0, isError!!)
+            TextField("Password",textStatePassword,null,1,isError)
             when(typeError?.value){
                 1->{TextError(message = "Ingresa tu usuario y contraseña")}
                 2->{TextError(message = "Usuario y contraseña no validos")}
@@ -171,7 +182,7 @@ fun Login(stateForms: ViewModelLogin?, isError: MutableState<Boolean>?, typeErro
                 } else{
                     isError.value = false
                     typeError?.value = 0
-                    stateForms?.user(textStateEmail.value, textStatePassword.value)
+                    stateForms?.user(textStateEmail.value, textStatePassword.value, privateKey)
                 }
             },
                 Modifier
@@ -186,7 +197,12 @@ fun Login(stateForms: ViewModelLogin?, isError: MutableState<Boolean>?, typeErro
 }
 
 @Composable
-fun UserRegisterForm(){
+fun UserRegisterForm(
+    viewModelLogin: ViewModelLogin?,
+    isError: MutableState<Boolean>?,
+    typeError: MutableState<Int>?,
+    publicKey: String?
+){
     Box(
         Modifier
             .fillMaxSize()
@@ -199,8 +215,12 @@ fun UserRegisterForm(){
             val textStateName = remember { mutableStateOf("") } // Initialize the state variable
             val textStateSecondName = remember { mutableStateOf("") } // Initialize the state variable
             val textStateEmail = remember { mutableStateOf("") } // Initialize the state variable
-            val textStateConfirmEmail = remember { mutableStateOf("") }
+            val textStateConfirmPassword = remember { mutableStateOf("") }
+            val textStateConfirmPassword2 = remember { mutableStateOf("") }
             val isError= remember { mutableStateOf(false) }
+            val isEmailInvalid = remember{ mutableStateOf(false) }
+            val isErrorEqualPassword = remember { mutableStateOf(false) }
+            val isErrorEqualPassword2 = remember { mutableStateOf(false) }
             val typeError = remember{ mutableStateOf(0) }
             Image(
                 painter = painterResource(id = R.mipmap.ic_launcher_foreground),
@@ -214,16 +234,65 @@ fun UserRegisterForm(){
                 Modifier.align(alignment = Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.displaySmall
             )
-            TextField("Nombre",textStateName,0,isError)
-            TextField("Apellidos",textStateSecondName,0,isError)
-            TextField("email",textStateEmail,0,isError)
-            TextField("Password",textStateConfirmEmail,1,isError)
-            TextField("confirmar password",textStateConfirmEmail,1,isError)
+            TextField("Nombre",textStateName,null,0,isError)
+            TextField("Apellidos",textStateSecondName,null,0,isError)
+            TextField("email",textStateEmail,null,0,isEmailInvalid)
+            TextField("Password",textStateConfirmPassword,null,1,isErrorEqualPassword)
+            TextField("confirmar password",textStateConfirmPassword2,textStateConfirmPassword,1,isErrorEqualPassword2)
             when(typeError.value){
-                1->{TextError(message = "Ingresa tu usuario y contraseña")}
-                2->{TextError(message = "Usuario y contraseña no validos")}
+                1->{TextError(message = "Ingrese los campos solicitados")}
+                2->{TextError(message = "Email invalido, ejemplo: email@gmail.com")}
+                3->{TextError(message = "Las contraseñas no son iguales")}
             }
-            Button(onClick = { /*TODO*/ },
+            Button(onClick = {
+                val emailRegex = Regex("^[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\$")
+                if (
+                    textStateName.value.isEmpty()&&
+                    textStateSecondName.value.isEmpty()&&
+                    textStateEmail.value.isEmpty()&&
+                    textStateConfirmPassword.value.isEmpty()&&
+                    textStateConfirmPassword2.value.isEmpty()
+                ){
+                    isError.value = true
+                    isEmailInvalid.value = true
+                    isErrorEqualPassword.value = true
+                    isErrorEqualPassword2.value = true
+                    typeError.value = 1
+                } else if (!emailRegex.matches(textStateEmail.value)){
+                        isError.value = false
+                        isEmailInvalid.value = true
+                        isErrorEqualPassword.value = false
+                        isErrorEqualPassword2.value = false
+                        typeError.value = 2
+                }else if(textStateConfirmPassword.value != textStateConfirmPassword2.value){
+                    isError.value = false
+                    isEmailInvalid.value = false
+                    isErrorEqualPassword.value = true
+                    isErrorEqualPassword2.value = true
+                    typeError.value = 3
+                }
+                else{
+                    isError.value = false
+                    isEmailInvalid.value = false
+                    isErrorEqualPassword.value = false
+                    isErrorEqualPassword2.value = false
+                    typeError.value = 0
+                    //encriptdata
+                    val encripted = CodeEncode().encryptData(publicKey, textStateConfirmPassword.value)
+                    val pass = Base64.encodeToString(encripted, Base64.DEFAULT)
+                    val userData = UserDataInsertModel(
+                        UUID.randomUUID().toString(),
+                        textStateName.value,
+                        textStateSecondName.value,
+                        textStateEmail.value,
+                        pass,
+                    )
+                    viewModelLogin?.userRegistry(userData)
+                    if (viewModelLogin?.userData?.value == true){
+
+                    }
+                }
+            },
                 Modifier
                     .align(alignment = Alignment.CenterHorizontally)
                     .fillMaxWidth()
@@ -235,6 +304,8 @@ fun UserRegisterForm(){
     }
 }
 
+
+
 @Composable
 fun TextError(message:String){
     Text(
@@ -245,7 +316,7 @@ fun TextError(message:String){
 }
 
 @Composable
-fun TextField(label: String, text: MutableState<String>, inputType: Int, isError: MutableState<Boolean>){
+fun TextField(label: String, text: MutableState<String>,text2: MutableState<String>?, inputType: Int, isError: MutableState<Boolean>){
     when(inputType){
         0->{
             OutlinedTextField(
@@ -262,17 +333,19 @@ fun TextField(label: String, text: MutableState<String>, inputType: Int, isError
         }
         1->{
             OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth(1F)
+                    .padding(10.dp, 0.dp, 10.dp, 0.dp),
                 value = text.value.trim(),
-                onValueChange = { text.value = it },
+                onValueChange = {
+                    text.value = it
+                },
                 singleLine = true,
-                isError = if(isError.value) true else false,
+                isError = if (isError.value) true else false,
                 trailingIcon = {
                     Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "")
                 },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth(1F)
-                    .padding(10.dp, 0.dp, 10.dp, 0.dp),
                 label = { Text(text = label) },
                 //placeholder = { Text(text = label) },
             )
@@ -316,7 +389,6 @@ fun DropDownMenu(stateForms: ViewModelLogin?) {
             }
         }
     }
-
 }
 
 
@@ -329,7 +401,7 @@ fun GreetingPreview() {
         Scaffold(topBar = { DropDownMenu(null) }){
             Column {
                 //Login(null, null, null)
-                UserRegisterForm()
+                UserRegisterForm(null, null, null, null)
             }
         }
     }
