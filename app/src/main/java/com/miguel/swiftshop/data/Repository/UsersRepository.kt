@@ -36,8 +36,10 @@ class UsersRepository {
                    val data: String = usersData.password.toString()
                    val decryptPasswordUser = codeEncode.decrypData(privateKey, Base64.decode(data, Base64.DEFAULT))
                    if (password == decryptPasswordUser){
+                       println("son iguales")
                        user.value = usersData
                    } else{
+                       println("no son iguales")
                        user.value = null
                    }
                } else{

@@ -30,7 +30,7 @@ import com.miguel.swiftshop.models.UserList
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ShoppingListComponet {
+class OderListComponents {
     @SuppressLint("NotConstructor")
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
@@ -76,9 +76,9 @@ class ShoppingListComponet {
             }
         }
     }
-/*
-Preview Components
-* **/
+    /*
+    Preview Components
+    * **/
     @Preview(showBackground = true)
     @Composable
     fun previewList(){
@@ -91,4 +91,5 @@ Preview Components
         listDataState.value = list
         ShoppingList(listDataState)
     }
+
 }

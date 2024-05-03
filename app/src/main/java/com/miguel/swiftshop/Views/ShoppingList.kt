@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -213,7 +215,7 @@ class ShoppingList : ComponentActivity() {
                         Icon(icons[index], contentDescription = item)
                         //BadgeBoxCountOrder()
                         if (index == 1){
-                            BadgeBoxCountOrder("10,000",icon = icons[index])
+                            BadgeBoxCountOrder("0",icon = icons[index])
                         }
                     },
                     label = { Text(item) },
@@ -270,7 +272,7 @@ class ShoppingList : ComponentActivity() {
                     },
                     leadingIcon = {
                         Icon(
-                            Icons.Outlined.Favorite,
+                            Icons.Outlined.Add,
                             contentDescription = null,
                             tint = Color.Red
                         )
@@ -285,7 +287,7 @@ class ShoppingList : ComponentActivity() {
                     },
                     leadingIcon = {
                         Icon(
-                            Icons.Outlined.Favorite,
+                            Icons.Outlined.Clear,
                             contentDescription = null,
                             tint = Color.Red
                         )
