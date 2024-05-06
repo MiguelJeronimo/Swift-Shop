@@ -49,7 +49,7 @@ class ShoppingListComponet {
         val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
         val formattedDate = dateFormat.format(date)
         Card(
-            onClick = { /* Do something */ },
+            onClick = { onClick(list) },
             Modifier
                 .fillMaxWidth()
                 .size(width = 180.dp, height = 80.dp)
@@ -76,9 +76,16 @@ class ShoppingListComponet {
             }
         }
     }
+
+    private fun onClick(item: UserList){
+        println("DATA CLICLEADA: $item")
+    }
+
+
 /*
 Preview Components
 * **/
+    @RequiresApi(Build.VERSION_CODES.O)
     @Preview(showBackground = true)
     @Composable
     fun previewList(){

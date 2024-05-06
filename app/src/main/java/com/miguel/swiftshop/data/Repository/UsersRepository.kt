@@ -13,7 +13,7 @@ import com.miguel.swiftshop.models.UserList
 import com.miguel.swiftshop.utils.CodeEncode
 
 class UsersRepository {
-    val db = Firebase.firestore
+    private val db = Firebase.firestore
    fun Autentication(
        email: String,
        password: String,
@@ -36,10 +36,8 @@ class UsersRepository {
                    val data: String = usersData.password.toString()
                    val decryptPasswordUser = codeEncode.decrypData(privateKey, Base64.decode(data, Base64.DEFAULT))
                    if (password == decryptPasswordUser){
-                       println("son iguales")
                        user.value = usersData
                    } else{
-                       println("no son iguales")
                        user.value = null
                    }
                } else{
@@ -58,7 +56,6 @@ class UsersRepository {
             "name" to userData.name,
             "password" to userData.password
         )
-        val db = Firebase.firestore
         db.collection("users").document(userData.idColecction.toString()).set(user).addOnSuccessListener {
             _userData.value = true
         }.addOnFailureListener {
@@ -66,51 +63,5 @@ class UsersRepository {
             println("Error: $it")
             _userData.value = false
         }
-    }
-
-
-    fun getAllUserList(idUserCollection: String, _list: MutableLiveData<ArrayList<UserList>>){
-        println("IDCOLECFTION: $idUserCollection")
-        val db = Firebase.firestore
-        val userList = ArrayList<UserList>()
-        db.collection("users").document(idUserCollection).collection("list").get()
-            .addOnSuccessListener {
-                it.forEach {
-                    val documentsData = it.toObject<ListData>()
-                   userList.add(
-                       UserList(
-                           it.id,
-                           documentsData.name,
-                           documentsData.date
-                       )
-                   )
-                }
-                _list.value = userList
-            }
-            .addOnFailureListener { exception ->
-                _list.value = null
-                println("Error${exception}")
-            }
-
-//        db.collection("users").document(idUserCollection).collection("list")
-//            .addSnapshotListener { value, error ->
-//                if (error != null){
-//                    println("Ocurrio un error: $error")
-//                    _list.value = null
-//                }
-//                val userList = ArrayList<UserList>()
-//                value?.forEach {
-//                    val documentsData = it.toObject<ListData>()
-//                    userList.add(
-//                        UserList(
-//                            it.id,
-//                            documentsData.name,
-//                            documentsData.date
-//                        )
-//                    )
-//                }
-//                _list.value = userList
-//                println("MODIFICACIONES: $userList")
-//            }
     }
 }

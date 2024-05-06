@@ -11,14 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -26,10 +20,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,7 +48,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,53 +57,61 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.Timestamp
-import com.miguel.swiftshop.R
+import com.miguel.swiftshop.Views.Components.AlertDialogCustom
 import com.miguel.swiftshop.Views.Components.ShoppingListComponet
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
 import com.miguel.swiftshop.models.UserList
-import com.miguel.swiftshop.utils.CodeEncode
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 
 class ShoppingList : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var viewModelUserList: ViewModelHome
     val shippingList = ShoppingListComponet()
+    lateinit var alertDialogCustom: AlertDialogCustom
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsDataStore = SettingsDataStore(context = this)
         viewModelUserList = ViewModelProvider(this)[ViewModelHome::class.java]
+        alertDialogCustom = AlertDialogCustom(viewModelUserList)
         setContent {
             SwiftShopTheme {
                 val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
+                val alertDialogState = remember { mutableStateOf(false) }
+                val stateIDCollection = remember { mutableStateOf("") }
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()
                     }
                 })
                 settingsDataStore.preferencesFlowUsers.asLiveData().observe(this, Observer {
-                    if (it!=null && it.toString().isNotEmpty()){
+                    if (it!=null && it.toString().isNotEmpty()) {
+                        stateIDCollection.value = it.toString()
                         viewModelUserList.userLists(it.toString())
                     }
                 })
 
                 viewModelUserList.list.observe(this, Observer {
+                    println("LISTAS $it")
                     if (it!=null){
                         listDataState.value=it
                     }
                 })
 
+                viewModelUserList.insertList.observe(this, Observer {
+                    if (it){
+                        Toast.makeText(this, "Se agrego correctamente la lista", Toast.LENGTH_SHORT).show()
+                    } else{
+                        Toast.makeText(this, "No se pudo ingresar su lista, intente mas tarde", Toast.LENGTH_SHORT).show()
+                    }
+                })
+
                 Scaffold(
                     topBar = { toobar() },
-                    floatingActionButton = { FloatButton() },
+                    floatingActionButton = { FloatButton(alertDialogState) },
                     bottomBar = { BottomNavigationBar() }
                 ){innerPadding->
                     Column(
@@ -120,6 +119,9 @@ class ShoppingList : ComponentActivity() {
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
+                        if (alertDialogState.value){
+                            alertDialogCustom.AlertDialogAdd(alertDialogState, stateIDCollection.value)
+                        }
                         Divider()
                         shippingList.ShoppingList(listDataState)
                     }
@@ -239,7 +241,7 @@ class ShoppingList : ComponentActivity() {
 
     @SuppressLint("UnrememberedMutableState")
     @Composable
-    fun FloatButton() {
+    fun FloatButton(alertDialogState: MutableState<Boolean>?) {
         var rotation by remember { mutableStateOf(0f) }
         var expanded by remember { mutableStateOf(false) }
         val contextForToast = LocalContext.current.applicationContext
@@ -266,7 +268,7 @@ class ShoppingList : ComponentActivity() {
                     Text("Agregar Lista")
                 },
                     onClick = {
-                        Toast.makeText(contextForToast, "¡Suscrito😎!", Toast.LENGTH_SHORT).show()
+                        alertDialogState?.value = true
                         expanded = false
                         rotation = 0.0F
                     },
@@ -311,7 +313,7 @@ class ShoppingList : ComponentActivity() {
         SwiftShopTheme {
             Scaffold(
                 topBar = { toobar() },
-                floatingActionButton = { FloatButton() },
+                floatingActionButton = { FloatButton(null) },
                 bottomBar = { BottomNavigationBar() }
             ) { innerPadding ->
                 println(innerPadding)
