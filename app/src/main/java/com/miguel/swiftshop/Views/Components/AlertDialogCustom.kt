@@ -72,7 +72,7 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
         when(inputType){
             0->{
                 OutlinedTextField(
-                    value = text.value.trim(),
+                    value = text.value,
                     onValueChange = { text.value = it },
                     singleLine = true,
                     modifier = Modifier
@@ -88,7 +88,7 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
                     modifier = Modifier
                         .fillMaxWidth(1F)
                         .padding(10.dp, 0.dp, 10.dp, 0.dp),
-                    value = text.value.trim(),
+                    value = text.value,
                     onValueChange = {
                         text.value = it
                     },

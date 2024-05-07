@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -69,7 +71,6 @@ import kotlinx.coroutines.launch
 class ShoppingList : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var viewModelUserList: ViewModelHome
-    val shippingList = ShoppingListComponet()
     lateinit var alertDialogCustom: AlertDialogCustom
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +83,8 @@ class ShoppingList : ComponentActivity() {
                 val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
                 val alertDialogState = remember { mutableStateOf(false) }
                 val stateIDCollection = remember { mutableStateOf("") }
+                val stateDeleteButton = remember { mutableStateOf(false) }
+                val shippingList = ShoppingListComponet(stateDeleteButton)
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()
@@ -110,7 +113,7 @@ class ShoppingList : ComponentActivity() {
                 })
 
                 Scaffold(
-                    topBar = { toobar() },
+                    topBar = { toobar(stateDeleteButton) },
                     floatingActionButton = { FloatButton(alertDialogState) },
                     bottomBar = { BottomNavigationBar() }
                 ){innerPadding->
@@ -139,29 +142,61 @@ class ShoppingList : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun toobar(){
+    fun toobar(stateDeleteButton: MutableState<Boolean>?) {
         val textStle = androidx.compose.ui.text.TextStyle(
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
         Row (Modifier.fillMaxWidth(1f)){
-            Text(
-                modifier = Modifier
-                    .padding(15.dp,10.dp,0.dp,0.dp),
-                text = "Swift Shop",
-                color = MaterialTheme.colorScheme.secondary,
-                style = textStle
-            )
+            if (!stateDeleteButton!!.value){
+                Text(
+                    modifier = Modifier
+                        .padding(15.dp,10.dp,0.dp,0.dp),
+                    text = "Swift Shop",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = textStle
+                )
+            } else{
+                Backbutton(stateDeleteButton)
+            }
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.CenterVertically),
                 horizontalArrangement = Arrangement.End
             ){
-                DropDownMenu()
+                //DropDownMenu()
+                if (!stateDeleteButton.value){
+                    DropDownMenu()
+
+                } else {
+                    DeleteButton(stateDeleteButton)
+                }
+
             }
         }
+    }
 
+    @Composable
+    fun Backbutton(stateDeleteButton: MutableState<Boolean>) {
+        Box {
+            IconButton(onClick = {
+                stateDeleteButton.value = false
+            }) {
+                Icon(Icons.Default.ArrowBack , contentDescription = "delete")
+            }
+        }
+    }
+
+    @Composable
+    fun DeleteButton(stateDeleteButton: MutableState<Boolean>) {
+        Box {
+            IconButton(onClick = {
+                stateDeleteButton.value = false
+            }) {
+                Icon(Icons.Default.Delete , contentDescription = "delete")
+            }
+        }
     }
 
     @SuppressLint("SuspiciousIndentation")
@@ -309,10 +344,11 @@ class ShoppingList : ComponentActivity() {
             UserList("i1289askjdnk","Aurrera", Timestamp(1714416433,  533000000))
         )
         val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
+        val shippingList = ShoppingListComponet(null)
         listDataState.value = list
         SwiftShopTheme {
             Scaffold(
-                topBar = { toobar() },
+                topBar = { toobar(null) },
                 floatingActionButton = { FloatButton(null) },
                 bottomBar = { BottomNavigationBar() }
             ) { innerPadding ->
