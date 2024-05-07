@@ -31,26 +31,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
+import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.md_theme_dark_error
 import com.miguel.swiftshop.models.UserList
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ShoppingListComponet(private val stateDeleteButton: MutableState<Boolean>?) {
+class ShoppingListComponet(
+    private val stateDeleteButton: MutableState<Boolean>?,
+    private val stateDataUser: ViewModelHome?
+) {
     @SuppressLint("NotConstructor")
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
     fun ShoppingList(list: MutableState<List<UserList>>?) {
+        val array = ArrayList<String>()
         LazyColumn(Modifier.fillMaxHeight()) {
             items(list!!.value) {
-                ItemList(it)
+                ItemList(it,array)
             }
         }
     }
-
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    fun ItemList(list: UserList) {
+    fun ItemList(list: UserList, array: ArrayList<String>) {
         val date = list.date?.toDate()
         val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
         val formattedDate = dateFormat.format(date)
@@ -60,7 +64,10 @@ class ShoppingListComponet(private val stateDeleteButton: MutableState<Boolean>?
         if (!stateDeleteButton!!.value){
             stateDeleteItem = false
         }
-
+        val isArrayNull = stateDataUser!!.dataUserState.value!!.idDocuments
+        if (isArrayNull == null){
+            array.clear()
+        }
         Card(
             //onClick = { onClick(list) },
             Modifier
@@ -71,7 +78,8 @@ class ShoppingListComponet(private val stateDeleteButton: MutableState<Boolean>?
                     onClick = { onClick(list) },
                     onLongClick = {
                         stateDeleteItem = true
-                        onLongClick(list)
+                        val count = stateDataUser.dataUserState.value?.count?.inc()
+                        onLongClick(list, array, count)
                     }
                 )
         )
@@ -126,12 +134,13 @@ class ShoppingListComponet(private val stateDeleteButton: MutableState<Boolean>?
     }
 
     private fun onClick(item: UserList){
-        println("DATA CLICLEADA: ${item.idDocument}")
+        //stateDataUser?.idDocuments?.add(item.idDocument.toString())
     }
 
-    private fun onLongClick(list: UserList) {
+    private fun onLongClick(list: UserList, array: ArrayList<String>, count: Int?) {
         stateDeleteButton!!.value = true
-        println(list.idDocument)
+        array.add(list.idDocument.toString())
+        stateDataUser?.stateDataUser(count!!, array)
     }
 
 

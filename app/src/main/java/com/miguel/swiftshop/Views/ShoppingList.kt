@@ -31,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -72,9 +73,11 @@ class ShoppingList : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var viewModelUserList: ViewModelHome
     lateinit var alertDialogCustom: AlertDialogCustom
+    lateinit var stateProgressBar:  MutableState<Boolean>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         settingsDataStore = SettingsDataStore(context = this)
         viewModelUserList = ViewModelProvider(this)[ViewModelHome::class.java]
         alertDialogCustom = AlertDialogCustom(viewModelUserList)
@@ -84,24 +87,36 @@ class ShoppingList : ComponentActivity() {
                 val alertDialogState = remember { mutableStateOf(false) }
                 val stateIDCollection = remember { mutableStateOf("") }
                 val stateDeleteButton = remember { mutableStateOf(false) }
-                val shippingList = ShoppingListComponet(stateDeleteButton)
+                stateProgressBar = remember { mutableStateOf(false) }
+                val stateDataUser = remember { mutableStateOf("")}
+                val shippingList = ShoppingListComponet(stateDeleteButton, viewModelUserList)
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()
                     }
                 })
+                viewModelUserList.dataUserState.observe(this, Observer {
+                    stateDataUser.value = it.count.toString()
+                })
+                viewModelUserList.delete.observe(this, Observer {
+                    val array = viewModelUserList.dataUserState.value?.idDocuments
+                    if (array == null){
+                        stateProgressBar.value = false
+                    }
+                })
                 settingsDataStore.preferencesFlowUsers.asLiveData().observe(this, Observer {
                     if (it!=null && it.toString().isNotEmpty()) {
                         stateIDCollection.value = it.toString()
+                        stateProgressBar.value = true
                         viewModelUserList.userLists(it.toString())
                     }
                 })
-
+//titulo, html descripcion, imagenes,
                 viewModelUserList.list.observe(this, Observer {
-                    println("LISTAS $it")
                     if (it!=null){
                         listDataState.value=it
                     }
+                    stateProgressBar.value = false
                 })
 
                 viewModelUserList.insertList.observe(this, Observer {
@@ -113,10 +128,13 @@ class ShoppingList : ComponentActivity() {
                 })
 
                 Scaffold(
-                    topBar = { toobar(stateDeleteButton) },
+                    topBar = { toobar(stateDeleteButton,stateDataUser,stateIDCollection)},
                     floatingActionButton = { FloatButton(alertDialogState) },
                     bottomBar = { BottomNavigationBar() }
                 ){innerPadding->
+                    if (stateProgressBar.value){
+                        IndeterminateIndicator()
+                    }
                     Column(
                         modifier = Modifier
                             .padding(innerPadding),
@@ -135,14 +153,22 @@ class ShoppingList : ComponentActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
-        println("backPResed")
         finishAffinity(); // Termina la pila de actividades
     }
     data class ListProduct(val nameList: String, val date: String)
-
+    @Composable
+    fun IndeterminateIndicator() {
+        LinearProgressIndicator(
+            Modifier.fillMaxWidth()
+        )
+    }
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun toobar(stateDeleteButton: MutableState<Boolean>?) {
+    fun toobar(
+        stateDeleteButton: MutableState<Boolean>?,
+        stateDataUser: MutableState<String>?,
+        stateIDCollection: MutableState<String>?
+    ) {
         val textStle = androidx.compose.ui.text.TextStyle(
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
@@ -158,6 +184,13 @@ class ShoppingList : ComponentActivity() {
                 )
             } else{
                 Backbutton(stateDeleteButton)
+                Text(
+                    text = stateDataUser!!.value,
+                    modifier = Modifier
+                        .padding(5.dp,10.dp,0.dp,0.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = textStle
+                )
             }
             Row (
                 modifier = Modifier
@@ -170,7 +203,7 @@ class ShoppingList : ComponentActivity() {
                     DropDownMenu()
 
                 } else {
-                    DeleteButton(stateDeleteButton)
+                    DeleteButton(stateDeleteButton, stateIDCollection)
                 }
 
             }
@@ -182,6 +215,7 @@ class ShoppingList : ComponentActivity() {
         Box {
             IconButton(onClick = {
                 stateDeleteButton.value = false
+                viewModelUserList.stateDataUser(0, null)
             }) {
                 Icon(Icons.Default.ArrowBack , contentDescription = "delete")
             }
@@ -189,10 +223,19 @@ class ShoppingList : ComponentActivity() {
     }
 
     @Composable
-    fun DeleteButton(stateDeleteButton: MutableState<Boolean>) {
+    fun DeleteButton(
+        stateDeleteButton: MutableState<Boolean>,
+        stateIDCollection: MutableState<String>?
+    ) {
         Box {
             IconButton(onClick = {
                 stateDeleteButton.value = false
+                val idsDocumentList = viewModelUserList.dataUserState.value?.idDocuments
+                stateProgressBar.value = true
+                idsDocumentList?.forEach {
+                    viewModelUserList.delete(stateIDCollection?.value,it)
+                }
+                viewModelUserList.stateDataUser(0, null)
             }) {
                 Icon(Icons.Default.Delete , contentDescription = "delete")
             }
@@ -344,15 +387,14 @@ class ShoppingList : ComponentActivity() {
             UserList("i1289askjdnk","Aurrera", Timestamp(1714416433,  533000000))
         )
         val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
-        val shippingList = ShoppingListComponet(null)
+        val shippingList = ShoppingListComponet(null, null)
         listDataState.value = list
         SwiftShopTheme {
             Scaffold(
-                topBar = { toobar(null) },
+                topBar = { toobar(null, null, null) },
                 floatingActionButton = { FloatButton(null) },
                 bottomBar = { BottomNavigationBar() }
             ) { innerPadding ->
-                println(innerPadding)
                 Column(
                     modifier = Modifier
                         .padding(innerPadding),

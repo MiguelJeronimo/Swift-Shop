@@ -74,4 +74,9 @@ class RepositoryShoppingList {
                 _insertList.value = false
             }
     }
+    fun delete(idDocumentUser: String?, idDocumentList: String?, _delete: MutableLiveData<Boolean>){
+        db.collection("users").document(idDocumentUser!!).collection("list")
+            .document(idDocumentList.toString()).delete()
+            .addOnSuccessListener {_delete.value = true}.addOnFailureListener { _delete.value = false }
+    }
 }

@@ -14,6 +14,11 @@ data class UserList(
     var date:  com.google.firebase.Timestamp?
 )
 
+data class DataUserState(
+    var count: Int?,
+    var idDocuments: ArrayList<String>?,
+)
+
 //models to firebase data
 data class ListData(
     var name: String?=null,
