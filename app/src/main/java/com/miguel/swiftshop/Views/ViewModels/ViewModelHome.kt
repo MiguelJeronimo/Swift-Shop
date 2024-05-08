@@ -18,6 +18,8 @@ class ViewModelHome: ViewModel() {
     val dataUserState: MutableLiveData<DataUserState> get() = _dataUserstate
     private val _delete = MutableLiveData<Boolean>()
     val delete: MutableLiveData<Boolean> get() = _delete
+    private val _stateNextActivity = MutableLiveData<Boolean>()
+    val stateNextActivity: MutableLiveData<Boolean> get() = _stateNextActivity
     init {
         _dataUserstate.value = DataUserState(0, null)
     }
@@ -34,5 +36,9 @@ class ViewModelHome: ViewModel() {
 
     fun delete(idDocumentUser: String?, idDocumentList: String?){
         repository.delete(idDocumentUser, idDocumentList, _delete)
+    }
+
+    fun activityProductActivity(state: Boolean){
+        _stateNextActivity.value = state
     }
 }

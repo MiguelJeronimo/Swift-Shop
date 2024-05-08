@@ -1,6 +1,7 @@
 package com.miguel.swiftshop.Views
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -89,7 +90,13 @@ class ShoppingList : ComponentActivity() {
                 val stateDeleteButton = remember { mutableStateOf(false) }
                 stateProgressBar = remember { mutableStateOf(false) }
                 val stateDataUser = remember { mutableStateOf("")}
+                val stateNextActivity = remember { mutableStateOf(false) }
                 val shippingList = ShoppingListComponet(stateDeleteButton, viewModelUserList)
+                viewModelUserList.stateNextActivity.observe(this, Observer {
+                    if (it){
+                        //Intent(applicationContext, )
+                    }
+                })
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()

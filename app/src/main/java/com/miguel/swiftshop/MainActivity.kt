@@ -96,7 +96,6 @@ class MainActivity : ComponentActivity() {
 
                 viewModelLogin.user.observe(this, Observer {
                     if(it != null){
-                        println("DATA USER $it")
                         val userData = UserData(
                             it.name,
                             it.apellidos,
@@ -105,7 +104,6 @@ class MainActivity : ComponentActivity() {
                             it.idCollection,
                         )
                         userDataState.value = userData
-                        println("USERSTATE $userDataState")
                         viewModelLogin.stateLogin(3)
                     }
                 })

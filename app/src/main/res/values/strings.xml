@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Swift Shop</string>
     <string name="title_activity_shopping_list">ShoppingList</string>
+    <string name="title_activity_product">ProductActivity</string>
 </resources>

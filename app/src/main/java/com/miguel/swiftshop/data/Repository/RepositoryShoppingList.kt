@@ -68,7 +68,6 @@ class RepositoryShoppingList {
         )
         db.collection("users").document(idCollection!!).collection("list")
             .document(uuii.toString()).set(list).addOnSuccessListener {
-                println("Inserto? $it")
                 _insertList.value = true
             }.addOnFailureListener {
                 _insertList.value = false

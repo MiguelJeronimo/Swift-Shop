@@ -32,7 +32,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
-import com.miguel.swiftshop.Views.theme.md_theme_dark_error
+import com.miguel.swiftshop.Views.theme.errorContainerDark
+import com.miguel.swiftshop.Views.theme.errorDark
+import com.miguel.swiftshop.Views.theme.errorLight
 import com.miguel.swiftshop.models.UserList
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -89,7 +91,7 @@ class ShoppingListComponet(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(md_theme_dark_error)
+                            .background(errorContainerDark)
                     ) {
                         Text(
                             list.name.toString(),
