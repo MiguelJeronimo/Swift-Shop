@@ -91,7 +91,7 @@ class ShoppingListComponet(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(errorContainerDark)
+                            .background(errorLight)
                     ) {
                         Text(
                             list.name.toString(),
