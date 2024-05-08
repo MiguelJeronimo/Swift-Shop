@@ -55,8 +55,19 @@ import com.miguel.swiftshop.utils.CodeEncode
 import kotlinx.coroutines.launch
 import java.util.UUID
 import android.util.Base64
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
 import com.miguel.swiftshop.models.UserDataInsertModel
+import kotlinx.coroutines.CoroutineScope
 
 class MainActivity : ComponentActivity() {
     lateinit var stateForms: MutableState<Int>
@@ -67,6 +78,8 @@ class MainActivity : ComponentActivity() {
     lateinit var stateButtonLogin: MutableState<Boolean>
     lateinit var stateButtonRegister: MutableState<Boolean>
     lateinit var uuii: UUID
+    lateinit var scope: CoroutineScope
+    lateinit var snackbarHostState: SnackbarHostState
     val codeDecode = CodeEncode()
     lateinit var stateProgressBar:  MutableState<Boolean>
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
@@ -83,6 +96,8 @@ class MainActivity : ComponentActivity() {
         //FirebaseApp.initializeApp(applicationContext)
         setContent {
             SwiftShopTheme {
+                scope = rememberCoroutineScope()
+                snackbarHostState = remember { SnackbarHostState() }
                 stateButtonLogin = remember { mutableStateOf(true) }
                 stateButtonRegister = remember { mutableStateOf(true) }
                 stateProgressBar = remember { mutableStateOf(false) }
@@ -98,6 +113,34 @@ class MainActivity : ComponentActivity() {
                         Intent(applicationContext, ShoppingList::class.java).also {
                             startActivity(it)
                         }
+                    }
+                })
+
+                //viewmodel to get user registry and save in database
+                viewModelLogin.userData.observe(this, Observer {
+                    if (it != null){
+                        when(it){
+                            true -> {
+                                stateProgressBar.value = false
+                                stateButtonRegister.value = true
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Usuario registrado correctamente")
+                                }
+                            }
+                            else->{
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("No se pudo registrar el usuario")
+                                }
+                                stateProgressBar.value = false
+                                stateButtonRegister.value = true
+                            }
+                        }
+                    }else{
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Ocurrio un error, intente mas tarde")
+                        }
+                        stateProgressBar.value = false
+                        stateButtonRegister.value = true
                     }
                 })
 
@@ -122,7 +165,12 @@ class MainActivity : ComponentActivity() {
                         typeError.value = 2
                     }
                 })
-                Scaffold(topBar = { DropDownMenu(viewModelLogin) }){
+                Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState)
+                    },
+                    topBar = { DropDownMenu(viewModelLogin) }
+                ){
                     Column(
                         Modifier.verticalScroll(rememberScrollState())
                     ) {
@@ -314,10 +362,10 @@ class MainActivity : ComponentActivity() {
                 Button(onClick = {
                     val emailRegex = Regex("^[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\$")
                     if (
-                        textStateName.value.isEmpty()&&
-                        textStateSecondName.value.isEmpty()&&
-                        textStateEmail.value.isEmpty()&&
-                        textStateConfirmPassword.value.isEmpty()&&
+                        textStateName.value.isEmpty()||
+                        textStateSecondName.value.isEmpty()||
+                        textStateEmail.value.isEmpty()||
+                        textStateConfirmPassword.value.isEmpty()||
                         textStateConfirmPassword2.value.isEmpty()
                     ){
                         isError.value = true
@@ -339,6 +387,8 @@ class MainActivity : ComponentActivity() {
                         typeError.value = 3
                     }
                     else{
+                        stateProgressBar.value = true
+                        stateButtonRegister.value = false
                         isError.value = false
                         isEmailInvalid.value = false
                         isErrorEqualPassword.value = false
@@ -355,15 +405,18 @@ class MainActivity : ComponentActivity() {
                             pass,
                         )
                         viewModelLogin?.userRegistry(userData)
-                        if (viewModelLogin?.userData?.value == true){
-
-                        }
+                        textStateName.value = ""
+                        textStateSecondName.value = ""
+                        textStateEmail.value = ""
+                        textStateConfirmPassword.value = ""
+                        textStateConfirmPassword2.value = ""
                     }
                 },
                     Modifier
                         .align(alignment = Alignment.CenterHorizontally)
                         .fillMaxWidth()
-                        .padding(10.dp)
+                        .padding(10.dp),
+                    enabled = stateButtonRegister.value
                 ) {
                     Text(text = "Crear cuenta")
                 }
@@ -414,6 +467,66 @@ class MainActivity : ComponentActivity() {
                     label = { Text(text = label) },
                     //placeholder = { Text(text = label) },
                 )
+            }
+        }
+    }
+
+    //snackbar implementation for custom snackbar
+    @Composable
+    fun CustomSnackbar() {
+        Snackbar(
+            containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            shape = RoundedCornerShape(25)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .fillMaxWidth(),
+                ) {
+                    Text("Titulo")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Tienes una nueva notificación")
+                }
+                Column(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Button(onClick = { /*TODO*/ }) {
+                        Text("Acción")
+                    }
+                }
+
+            }
+        }
+    }
+    @Composable
+    fun MyCustomSnackbar() {
+        val context = LocalContext.current
+        val snackbarState = remember { SnackbarHostState() }
+        val coroutineScope = rememberCoroutineScope()
+        Surface(
+            color = Color.DarkGray,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Button(
+                    modifier = Modifier.align(Alignment.Center),
+                    onClick = {
+                        coroutineScope.launch {
+                            snackbarState.showSnackbar("")
+                        }
+                    }
+                ) {
+                    Text("Mostrar custom snackbar")
+                }
+                SnackbarHost(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    hostState = snackbarState
+                ) {
+                    CustomSnackbar()
+                }
             }
         }
     }
