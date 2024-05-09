@@ -286,7 +286,7 @@ fun SwiftShopTheme(
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             dynamicDarkColorScheme(context)
-            //if (darkTheme) dynamicDarkColorScheme(context) else dynamicDarkColorScheme(context)
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicDarkColorScheme(context)
         }
 
         darkTheme -> DarkColorScheme

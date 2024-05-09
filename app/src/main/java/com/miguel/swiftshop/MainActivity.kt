@@ -55,18 +55,14 @@ import com.miguel.swiftshop.utils.CodeEncode
 import kotlinx.coroutines.launch
 import java.util.UUID
 import android.util.Base64
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Snackbar
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.graphics.Color
 import com.miguel.swiftshop.models.UserDataInsertModel
+import com.miguel.swiftshop.utils.ValidatePassword
 import kotlinx.coroutines.CoroutineScope
 
 class MainActivity : ComponentActivity() {
@@ -77,9 +73,11 @@ class MainActivity : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var stateButtonLogin: MutableState<Boolean>
     lateinit var stateButtonRegister: MutableState<Boolean>
+    lateinit var stateErrorCardPassword: MutableState<Boolean>
     lateinit var uuii: UUID
     lateinit var scope: CoroutineScope
     lateinit var snackbarHostState: SnackbarHostState
+    //lateinit var validatePassword: ValidatePassword
     val codeDecode = CodeEncode()
     lateinit var stateProgressBar:  MutableState<Boolean>
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
@@ -104,6 +102,7 @@ class MainActivity : ComponentActivity() {
                 stateForms = remember { mutableStateOf(2) }
                 isError= remember { mutableStateOf(false) }
                 typeError = remember{ mutableStateOf(0) }
+                stateErrorCardPassword = remember { mutableStateOf(false) }
                 val userDataState = remember { mutableStateOf(UserData(null, null, null,null,null)) }
                 viewModelLogin.login.observe(this, Observer {
                     stateForms.value = it
@@ -145,7 +144,6 @@ class MainActivity : ComponentActivity() {
                 })
 
                 viewModelLogin.user.observe(this, Observer {
-                    println("USER: $it")
                     if(it != null){
                         val userData = UserData(
                             it.name,
@@ -349,18 +347,25 @@ class MainActivity : ComponentActivity() {
                     Modifier.align(alignment = Alignment.CenterHorizontally),
                     style = MaterialTheme.typography.displaySmall
                 )
+                if (stateErrorCardPassword.value) {
+                    CardValidationPassword()
+                }
                 TextField("Nombre",textStateName,null,0,isError)
                 TextField("Apellidos",textStateSecondName,null,0,isError)
                 TextField("email",textStateEmail,null,0,isEmailInvalid)
-                TextField("Password",textStateConfirmPassword,null,1,isErrorEqualPassword)
+                TextFieldPassword("Password",textStateConfirmPassword)
                 TextField("confirmar password",textStateConfirmPassword2,textStateConfirmPassword,1,isErrorEqualPassword2)
                 when(typeError.value){
                     1->{TextError(message = "Ingrese los campos solicitados")}
                     2->{TextError(message = "Email invalido, ejemplo: email@gmail.com")}
                     3->{TextError(message = "Las contraseñas no son iguales")}
+                    4->{TextError(message = "Tu contraseña debe tener mas de 8 caracteres")}
+                    5->{TextError(message = "Tu contraseña es demasiado debil")}
                 }
                 Button(onClick = {
                     val emailRegex = Regex("^[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\$")
+                    val validatePassword2 = ValidatePassword(textStateConfirmPassword.value)
+                    println("TEXTO: ${textStateConfirmPassword.value} ${validatePassword2.isValid()}")
                     if (
                         textStateName.value.isEmpty()||
                         textStateSecondName.value.isEmpty()||
@@ -379,12 +384,29 @@ class MainActivity : ComponentActivity() {
                         isErrorEqualPassword.value = false
                         isErrorEqualPassword2.value = false
                         typeError.value = 2
-                    }else if(textStateConfirmPassword.value != textStateConfirmPassword2.value){
+                    } else if(textStateConfirmPassword.value.length < 8){
+                        isError.value = false
+                        isEmailInvalid.value = false
+                        isErrorEqualPassword.value = false
+                        isErrorEqualPassword2.value = false
+                        typeError.value = 4
+                    }
+                    else if(textStateConfirmPassword.value != textStateConfirmPassword2.value){
                         isError.value = false
                         isEmailInvalid.value = false
                         isErrorEqualPassword.value = true
                         isErrorEqualPassword2.value = true
                         typeError.value = 3
+                    }
+                    else if (!validatePassword2.isValid()){
+                        isError.value = false
+                        isErrorEqualPassword.value = false
+                        isErrorEqualPassword2.value = false
+                        println("ENTRO AQUI ${validatePassword2.isValid()} ")
+                        //isError.value = true
+                        isEmailInvalid.value = false
+                        stateErrorCardPassword.value = true
+                        typeError.value = 5
                     }
                     else{
                         stateProgressBar.value = true
@@ -393,6 +415,7 @@ class MainActivity : ComponentActivity() {
                         isEmailInvalid.value = false
                         isErrorEqualPassword.value = false
                         isErrorEqualPassword2.value = false
+                        stateErrorCardPassword.value = false
                         typeError.value = 0
                         //encriptdata
                         val encripted = CodeEncode().encryptData(publicKey, textStateConfirmPassword.value)
@@ -471,61 +494,82 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    //snackbar implementation for custom snackbar
     @Composable
-    fun CustomSnackbar() {
-        Snackbar(
-            containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            shape = RoundedCornerShape(25)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .fillMaxWidth(),
-                ) {
-                    Text("Titulo")
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Tienes una nueva notificación")
-                }
-                Column(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Button(onClick = { /*TODO*/ }) {
-                        Text("Acción")
-                    }
-                }
+    fun TextFieldPassword(label: String, text: MutableState<String>){
+        val validatePassword = ValidatePassword(text.value)
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth(1F)
+                .padding(10.dp, 0.dp, 10.dp, 0.dp),
+            value = text.value.trim(),
+            onValueChange = {
+                text.value = it
+                println("valido=?: ${validatePassword.isValid()}")
+                if(!validatePassword.isValid()){
+                    isError.value = true
+                    stateErrorCardPassword.value = true
+                } else{
+                    isError.value = false
+                    stateErrorCardPassword.value = false
 
-            }
-        }
-    }
-    @Composable
-    fun MyCustomSnackbar() {
-        val context = LocalContext.current
-        val snackbarState = remember { SnackbarHostState() }
-        val coroutineScope = rememberCoroutineScope()
-        Surface(
-            color = Color.DarkGray,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Button(
-                    modifier = Modifier.align(Alignment.Center),
-                    onClick = {
-                        coroutineScope.launch {
-                            snackbarState.showSnackbar("")
-                        }
-                    }
-                ) {
-                    Text("Mostrar custom snackbar")
                 }
-                SnackbarHost(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    hostState = snackbarState
+            },
+            singleLine = true,
+            isError = if (isError.value) true else false,
+            trailingIcon = {
+                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "")
+            },
+            visualTransformation = PasswordVisualTransformation(),
+            label = { Text(text = label) },
+            //placeholder = { Text(text = label) },
+        )
+
+    }
+
+    @Composable
+    fun CardValidationPassword(){
+        OutlinedCard(
+            Modifier.padding(10.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+        ) {
+            Box (
+                Modifier
+                    .fillMaxWidth()
+            ){
+                Column(
+                    Modifier
+                        .padding(5.dp)
+                        .align(Alignment.Center)
                 ) {
-                    CustomSnackbar()
+                    Text(text = "Tu contraseña al menos debe contener:",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(text = "- Mínimo 8 caracteres.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(text = "- Una mayúscula.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(text = "- Una minúscula.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(text = "- Un dígito.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(text = "- Un carácter especial permitido. = / _ < > ¡ ! @ # \$ % & * ( ) - ' \" : ; , ¿ ?.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelLarge,
+                        text = "No esta permitido que ingreses:")
+                    Text(text = "- Más de 2 caracteres idénticos (AAA, 222).",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
+                    Text(text = "- Más de dos caracteres consecutivos. (123, 321, ABC, cba).",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -546,5 +590,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 
 
