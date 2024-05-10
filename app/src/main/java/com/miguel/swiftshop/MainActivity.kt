@@ -91,7 +91,6 @@ class MainActivity : ComponentActivity() {
         val publicKey = codeDecode.readKey(public_key)
         val private_key = resources.openRawResource(R.raw.privatekey)
         val privateKey = codeDecode.readKey(private_key)
-        //FirebaseApp.initializeApp(applicationContext)
         setContent {
             SwiftShopTheme {
                 scope = rememberCoroutineScope()
@@ -365,7 +364,6 @@ class MainActivity : ComponentActivity() {
                 Button(onClick = {
                     val emailRegex = Regex("^[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\$")
                     val validatePassword2 = ValidatePassword(textStateConfirmPassword.value)
-                    println("TEXTO: ${textStateConfirmPassword.value} ${validatePassword2.isValid()}")
                     if (
                         textStateName.value.isEmpty()||
                         textStateSecondName.value.isEmpty()||

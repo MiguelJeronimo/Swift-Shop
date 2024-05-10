@@ -2,7 +2,6 @@ package com.miguel.swiftshop.utils
 
 class ValidatePassword(private val password: String) {
     fun isValid(): Boolean {
-        println(password)
         return password.length >= 8 && hasUppercase() && hasLowercase() && hasDigit() && hasAllowedSpecialChars() && !hasMoreThan2IdenticalChars()
     }
 
