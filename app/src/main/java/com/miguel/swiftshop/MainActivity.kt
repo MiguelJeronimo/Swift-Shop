@@ -62,6 +62,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.miguel.swiftshop.models.UserDataInsertModel
+import com.miguel.swiftshop.models.UserList
 import com.miguel.swiftshop.utils.ValidatePassword
 import kotlinx.coroutines.CoroutineScope
 
@@ -77,7 +78,8 @@ class MainActivity : ComponentActivity() {
     lateinit var uuii: UUID
     lateinit var scope: CoroutineScope
     lateinit var snackbarHostState: SnackbarHostState
-    //lateinit var validatePassword: ValidatePassword
+    lateinit var onClickState: MutableState<Boolean>
+    lateinit var itemDataList: MutableList<UserList>
     val codeDecode = CodeEncode()
     lateinit var stateProgressBar:  MutableState<Boolean>
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
@@ -400,7 +402,6 @@ class MainActivity : ComponentActivity() {
                         isError.value = false
                         isErrorEqualPassword.value = false
                         isErrorEqualPassword2.value = false
-                        println("ENTRO AQUI ${validatePassword2.isValid()} ")
                         //isError.value = true
                         isEmailInvalid.value = false
                         stateErrorCardPassword.value = true
