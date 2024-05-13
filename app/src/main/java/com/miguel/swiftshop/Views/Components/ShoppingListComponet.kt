@@ -9,20 +9,21 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -40,16 +41,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
-import com.miguel.swiftshop.Views.DeleteButton
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.errorLight
 import com.miguel.swiftshop.models.UserList
+import com.miguel.swiftshop.models.UserStateUpdate
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class ShoppingListComponet(
     private val stateDeleteButton: MutableState<Boolean>?,
-    private val stateDataUser: ViewModelHome?
+    private val stateDataUser: ViewModelHome?,
+    private val userStateUpdate: MutableState<UserStateUpdate>,
+    private val alertDialogState: MutableState<Boolean>?
 ) {
     @SuppressLint("NotConstructor")
     @RequiresApi(Build.VERSION_CODES.O)
@@ -100,7 +103,7 @@ class ShoppingListComponet(
                                     list.name.toString(),
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(20.dp,5.dp,10.dp,0.dp)
+                                        .padding(20.dp, 5.dp, 10.dp, 0.dp)
                                         .wrapContentWidth(Alignment.Start),
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleMedium
@@ -121,7 +124,7 @@ class ShoppingListComponet(
                                 .align(Alignment.CenterVertically),
                             horizontalArrangement = Arrangement.End
                         ){
-                            DeleteButton()
+                            UpdateButton(list)
                         }
                     }
                 }
@@ -133,12 +136,11 @@ class ShoppingListComponet(
                                     list.name.toString(),
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(20.dp,5.dp,10.dp,0.dp)
+                                        .padding(20.dp, 5.dp, 10.dp, 0.dp)
                                         .wrapContentWidth(Alignment.Start),
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleMedium
                                 )
-                                //Spacer(modifier = Modifier.padding(0.dp,0.dp,0.dp,10.dp))
                                 Text(
                                     formattedDate,
                                     Modifier
@@ -154,12 +156,30 @@ class ShoppingListComponet(
                                 .align(Alignment.CenterVertically),
                             horizontalArrangement = Arrangement.End
                         ){
-                            DeleteButton()
+                            UpdateButton(list)
                         }
                     }
              }
             }
         }
+    }
+
+    @Composable
+    fun UpdateButton(
+        item: UserList
+    ) {
+        Box {
+            IconButton(
+                onClick = {clickUpdateProduct(item)}
+            ) {
+                Icon(Icons.Default.Edit  , contentDescription = "delete")
+            }
+        }
+    }
+
+    private fun clickUpdateProduct(item: UserList){
+        userStateUpdate.value = UserStateUpdate(item.idDocument, item.name, item.date)
+        alertDialogState?.value = true
     }
 
     private fun onClick(item: UserList){

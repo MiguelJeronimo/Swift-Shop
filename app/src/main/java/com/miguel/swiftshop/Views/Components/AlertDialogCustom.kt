@@ -19,13 +19,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
+import com.miguel.swiftshop.models.UserStateUpdate
 import java.util.Date
 
 class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
     @Composable
-    fun AlertDialogAdd(alertDialogState: MutableState<Boolean>?, idCollection: String?) {
-        val openDialog = remember { mutableStateOf(true) }
+    fun AlertDialogAdd(
+        alertDialogState: MutableState<Boolean>?,
+        idCollection: String?,
+        userStateUpdate: UserStateUpdate? = null
+    ) {
         val textState = remember { mutableStateOf("") }
+        val openDialog = remember { mutableStateOf(true) }
+        //Data to update firebase
+        if (userStateUpdate != null) {
+            textState.value = userStateUpdate.name.toString()
+        }else{
+            textState.value = ""
+        }
         val isError = remember {mutableStateOf(false)}
         if (openDialog.value) {
             AlertDialog(
@@ -33,7 +44,11 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
                     openDialog.value = true
                 },
                 title = {
-                    Text(text = "Insertar lista")
+                    if (userStateUpdate != null) {
+                        Text(text = "Actualizar lista")
+                    }else{
+                        Text(text = "Insertar lista")
+                    }
                 },
                 text = {
                     TextField("Nombre",textState,null,0,isError)
@@ -42,11 +57,19 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
                     TextButton(
                         onClick = {
                             if(textState.value.isNotEmpty()){
-                                val date = Date()
-                                val timeStamp = Timestamp(date)
-                                viewModelUserList.insert(textState.value,timeStamp, idCollection)
-                                openDialog.value = false
-                                alertDialogState?.value = false
+                                if (userStateUpdate?.name == null){
+                                    val date = Date()
+                                    val timeStamp = Timestamp(date)
+                                    viewModelUserList.insert(textState.value,timeStamp, idCollection)
+                                    openDialog.value = false
+                                    alertDialogState?.value = false
+                                } else {
+                                    val date = Date()
+                                    val timeStamp = Timestamp(date)
+                                    viewModelUserList.update(textState.value,timeStamp, idCollection, userStateUpdate.uuiDocument)
+                                    openDialog.value = false
+                                    alertDialogState?.value = false
+                                }
                             }
                         }
                     ) {
@@ -58,6 +81,7 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
                         onClick = {
                             openDialog.value = false
                             alertDialogState?.value = false
+                            textState.value = ""
                         }
                     ) {
                         Text("Salir")
@@ -73,7 +97,12 @@ class AlertDialogCustom(private val viewModelUserList: ViewModelHome) {
             0->{
                 OutlinedTextField(
                     value = text.value,
-                    onValueChange = { text.value = it },
+                    onValueChange = {
+                        text.value = it
+                        //textUpdateState.value = it
+                        println("Valor TExto Editar: ${it}")
+                        println("TextValue ${text.value}")
+                                    },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth(1F)

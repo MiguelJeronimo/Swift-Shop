@@ -73,6 +73,27 @@ class RepositoryShoppingList {
                 _insertList.value = false
             }
     }
+
+    fun update(
+        listName: String,
+        date: Timestamp,
+        _updateList: MutableLiveData<Boolean>,
+        idCollection: String?,
+        uuiiDocumentList: String?
+    ){
+        println("${idCollection},${uuiiDocumentList}, ${listName}, ${date}")
+        println("ENTRO A UPDATE")
+        val list = hashMapOf(
+            "name" to listName,
+            "date" to date,
+        )
+        db.collection("users").document(idCollection!!).collection("list")
+            .document(uuiiDocumentList.toString()).set(list).addOnSuccessListener {
+                _updateList.value = true
+            }.addOnFailureListener {
+                _updateList.value = false
+            }
+    }
     fun delete(idDocumentUser: String?, idDocumentList: String?, _delete: MutableLiveData<Boolean>){
         db.collection("users").document(idDocumentUser!!).collection("list")
             .document(idDocumentList.toString()).delete()

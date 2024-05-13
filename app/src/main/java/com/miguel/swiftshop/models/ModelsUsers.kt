@@ -14,6 +14,12 @@ data class UserList(
     var date:  com.google.firebase.Timestamp?
 )
 
+data class UserStateUpdate(
+    val uuiDocument: String?= null,
+    val name: String?= null,
+    val date: com.google.firebase.Timestamp? = null
+)
+
 data class DataUserState(
     var count: Int?,
     var idDocuments: ArrayList<String>?,

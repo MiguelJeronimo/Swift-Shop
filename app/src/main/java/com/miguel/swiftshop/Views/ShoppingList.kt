@@ -1,7 +1,6 @@
 package com.miguel.swiftshop.Views
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -67,6 +66,7 @@ import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
 import com.miguel.swiftshop.models.UserList
+import com.miguel.swiftshop.models.UserStateUpdate
 import kotlinx.coroutines.launch
 
 
@@ -75,6 +75,7 @@ class ShoppingList : ComponentActivity() {
     lateinit var viewModelUserList: ViewModelHome
     lateinit var alertDialogCustom: AlertDialogCustom
     lateinit var stateProgressBar:  MutableState<Boolean>
+    lateinit var userStateUpdate: MutableState<UserStateUpdate>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +85,7 @@ class ShoppingList : ComponentActivity() {
         alertDialogCustom = AlertDialogCustom(viewModelUserList)
         setContent {
             SwiftShopTheme {
+                userStateUpdate = remember { mutableStateOf(UserStateUpdate()) }
                 val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
                 val alertDialogState = remember { mutableStateOf(false) }
                 val stateIDCollection = remember { mutableStateOf("") }
@@ -91,7 +93,7 @@ class ShoppingList : ComponentActivity() {
                 stateProgressBar = remember { mutableStateOf(false) }
                 val stateDataUser = remember { mutableStateOf("")}
                 val stateNextActivity = remember { mutableStateOf(false) }
-                val shippingList = ShoppingListComponet(stateDeleteButton, viewModelUserList)
+                val shippingList = ShoppingListComponet(stateDeleteButton, viewModelUserList, userStateUpdate,alertDialogState)
                 viewModelUserList.stateNextActivity.observe(this, Observer {
                     if (it){
                         //Intent(applicationContext, )
@@ -118,7 +120,7 @@ class ShoppingList : ComponentActivity() {
                         viewModelUserList.userLists(it.toString())
                     }
                 })
-//titulo, html descripcion, imagenes,
+
                 viewModelUserList.list.observe(this, Observer {
                     if (it!=null){
                         listDataState.value=it
@@ -131,6 +133,14 @@ class ShoppingList : ComponentActivity() {
                         Toast.makeText(this, "Se agrego correctamente la lista", Toast.LENGTH_SHORT).show()
                     } else{
                         Toast.makeText(this, "No se pudo ingresar su lista, intente mas tarde", Toast.LENGTH_SHORT).show()
+                    }
+                })
+
+                viewModelUserList.updateList.observe(this, Observer {
+                    if (it){
+                        Toast.makeText(this, "Se actualizo la lista correctamente", Toast.LENGTH_SHORT).show()
+                    } else{
+                        Toast.makeText(this, "No se pudo actualizar los datos, intente mas tarde", Toast.LENGTH_SHORT).show()
                     }
                 })
 
@@ -148,7 +158,20 @@ class ShoppingList : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
                         if (alertDialogState.value){
-                            alertDialogCustom.AlertDialogAdd(alertDialogState, stateIDCollection.value)
+                            //validate if inserted or updated
+                            if (userStateUpdate.value.name.isNullOrEmpty()){
+                                alertDialogCustom.AlertDialogAdd(alertDialogState, stateIDCollection.value)
+                            }else{
+                                alertDialogCustom.AlertDialogAdd(
+                                    alertDialogState,
+                                    stateIDCollection.value,
+                                    UserStateUpdate(
+                                        userStateUpdate.value.uuiDocument,
+                                        userStateUpdate.value.name,
+                                        userStateUpdate.value.date
+                                    )
+                                )
+                            }
                         }
                         Divider()
                         shippingList.ShoppingList(listDataState)
@@ -353,6 +376,7 @@ class ShoppingList : ComponentActivity() {
                     Text("Agregar Lista")
                 },
                     onClick = {
+                        userStateUpdate.value = UserStateUpdate()
                         alertDialogState?.value = true
                         expanded = false
                         rotation = 0.0F
@@ -394,7 +418,7 @@ class ShoppingList : ComponentActivity() {
             UserList("i1289askjdnk","Aurrera", Timestamp(1714416433,  533000000))
         )
         val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
-        val shippingList = ShoppingListComponet(null, null)
+        val shippingList = ShoppingListComponet(null, null, userStateUpdate, null)
         listDataState.value = list
         SwiftShopTheme {
             Scaffold(

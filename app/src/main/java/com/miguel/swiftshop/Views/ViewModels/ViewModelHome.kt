@@ -14,6 +14,9 @@ class ViewModelHome: ViewModel() {
     private val _insertList = MutableLiveData<Boolean>()
     val insertList: MutableLiveData<Boolean> get() = _insertList
 
+    private val _updateList = MutableLiveData<Boolean>()
+    val updateList: MutableLiveData<Boolean> get() = _updateList
+
     private val _dataUserstate = MutableLiveData<DataUserState> ()
     val dataUserState: MutableLiveData<DataUserState> get() = _dataUserstate
     private val _delete = MutableLiveData<Boolean>()
@@ -28,6 +31,10 @@ class ViewModelHome: ViewModel() {
     }
     fun insert(listName: String, date: Timestamp, idCollection: String?){
         repository.insert(listName, date, _insertList, idCollection)
+    }
+
+    fun update(listName: String, date: Timestamp, idCollection: String?, uuidDocumentList:String?){
+        repository.update(listName, date, _updateList, idCollection, uuidDocumentList)
     }
 
     fun stateDataUser(cout: Int, array: ArrayList<String>?){
