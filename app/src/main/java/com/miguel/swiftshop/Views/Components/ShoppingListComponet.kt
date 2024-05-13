@@ -71,8 +71,16 @@ class ShoppingListComponet(
         val date = list.date?.toDate()
         val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
         val formattedDate = dateFormat.format(date)
+        var count = stateDataUser?.dataUserState?.value?.count
         //obtein to state and save cofiguration state in item to the list
         var stateDeleteItem by rememberSaveable { mutableStateOf(false)}
+        var isClicked by rememberSaveable { mutableStateOf(false)}
+        /* validate count = 0, is significate all items to list is no selected,
+            and reset selected state to all items in false
+        * */
+        if (count == 0){
+            isClicked = false
+        }
         //validate state to delete list
         if (!stateDeleteButton!!.value){
             stateDeleteItem = false
@@ -87,9 +95,17 @@ class ShoppingListComponet(
                 .combinedClickable(
                     onClick = { onClick(list) },
                     onLongClick = {
-                        stateDeleteItem = true
-                        val count = stateDataUser.dataUserState.value?.count?.inc()
-                        onLongClick(list, array, count)
+                        if (!isClicked) {
+                            isClicked = true
+                            stateDeleteItem = true
+                            count = count?.inc()
+                            onLongClick(list, array, count)
+                        } else {
+                            isClicked = false
+                            stateDeleteItem = false
+                            count = count?.dec()
+                            onLongClick(list, array, count, isClicked)
+                        }
                     }
                 )
         )
@@ -186,11 +202,28 @@ class ShoppingListComponet(
         println("DATA: ${item}")
     }
 
-    private fun onLongClick(list: UserList, array: ArrayList<String>, count: Int?) {
-        stateDeleteButton!!.value = true
-        array.add(list.idDocument.toString())
-        stateDataUser?.stateDataUser(count!!, array)
+    private fun onLongClick(list: UserList, array: ArrayList<String>, count: Int?, isclicked: Boolean? = null) {
+        when(isclicked){
+            false->{
+                //count = array.size
+                array.remove(list.idDocument.toString())
+                stateDataUser?.stateDataUser(array.size, array)
+                if (array.size <=0){
+                    stateDeleteButton!!.value = false
+                    //stateDataUser?.stateDataUser(count!!, null)
+                }
+                println("TAMAÑO DEL ARRAY: ${array.size}")
+            }
+            null -> {
+                stateDeleteButton!!.value = true
+                array.add(list.idDocument.toString())
+                stateDataUser?.stateDataUser(array.size, array)
+                println("TAMAÑO DEL ARRAY SELECCIONADO: ${array.size}")
+            }
+            else -> {}
+        }
     }
+}
 
 
 /*
@@ -258,4 +291,3 @@ Preview Components
             }
         }
     }
-}

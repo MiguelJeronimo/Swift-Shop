@@ -93,7 +93,13 @@ class ShoppingList : ComponentActivity() {
                 stateProgressBar = remember { mutableStateOf(false) }
                 val stateDataUser = remember { mutableStateOf("")}
                 val stateNextActivity = remember { mutableStateOf(false) }
-                val shippingList = ShoppingListComponet(stateDeleteButton, viewModelUserList, userStateUpdate,alertDialogState)
+                val shippingList = ShoppingListComponet(
+                    stateDeleteButton,
+                    viewModelUserList,
+                    userStateUpdate,
+                    alertDialogState
+                )
+
                 viewModelUserList.stateNextActivity.observe(this, Observer {
                     if (it){
                         //Intent(applicationContext, )
@@ -145,7 +151,7 @@ class ShoppingList : ComponentActivity() {
                 })
 
                 Scaffold(
-                    topBar = { toobar(stateDeleteButton,stateDataUser,stateIDCollection)},
+                    topBar = { Toobar(stateDeleteButton,stateDataUser,stateIDCollection)},
                     floatingActionButton = { FloatButton(alertDialogState) },
                     bottomBar = { BottomNavigationBar() }
                 ){innerPadding->
@@ -194,7 +200,7 @@ class ShoppingList : ComponentActivity() {
     }
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun toobar(
+    fun Toobar(
         stateDeleteButton: MutableState<Boolean>?,
         stateDataUser: MutableState<String>?,
         stateIDCollection: MutableState<String>?
@@ -422,7 +428,7 @@ class ShoppingList : ComponentActivity() {
         listDataState.value = list
         SwiftShopTheme {
             Scaffold(
-                topBar = { toobar(null, null, null) },
+                topBar = { Toobar(null, null, null) },
                 floatingActionButton = { FloatButton(null) },
                 bottomBar = { BottomNavigationBar() }
             ) { innerPadding ->
