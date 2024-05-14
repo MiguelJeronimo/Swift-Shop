@@ -1,11 +1,11 @@
 package com.miguel.swiftshop.models
 
-import java.sql.Timestamp
 
 data class UserData(
     var name: String?,
     var apellidos: String?,
     var email: String?,
+    var password: String?,
     var idCollection:String?
 )
 data class UserList(
@@ -13,6 +13,18 @@ data class UserList(
     var name: String?,
     var date:  com.google.firebase.Timestamp?
 )
+
+data class UserStateUpdate(
+    val uuiDocument: String?= null,
+    val name: String?= null,
+    val date: com.google.firebase.Timestamp? = null
+)
+
+data class DataUserState(
+    var count: Int?,
+    var idDocuments: ArrayList<String>?,
+)
+
 //models to firebase data
 data class ListData(
     var name: String?=null,
@@ -24,4 +36,12 @@ data class User(
     val email: String?=  null,
     val name: String? = null,
     val password: String?= null
+)
+
+data class UserDataInsertModel(
+    val idColecction: String?=null,
+    val name: String?=null,
+    val apellidos: String?=null,
+    val email: String?=null,
+    val password: String?=null
 )

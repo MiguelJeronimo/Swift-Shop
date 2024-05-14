@@ -7,27 +7,29 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,16 +37,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,8 +59,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,44 +69,69 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.Timestamp
+import com.miguel.swiftshop.Views.Components.AlertDialogCustom
+import com.miguel.swiftshop.Views.Components.ShoppingListComponet
 import com.miguel.swiftshop.Views.ViewModels.ViewModelHome
 import com.miguel.swiftshop.Views.theme.SwiftShopTheme
 import com.miguel.swiftshop.data.SettingsDataStore
 import com.miguel.swiftshop.models.UserList
+import com.miguel.swiftshop.models.UserStateUpdate
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 
 class ShoppingList : ComponentActivity() {
     lateinit var settingsDataStore: SettingsDataStore
     lateinit var viewModelUserList: ViewModelHome
+    lateinit var alertDialogCustom: AlertDialogCustom
+    lateinit var stateProgressBar:  MutableState<Boolean>
+    lateinit var userStateUpdate: MutableState<UserStateUpdate>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         settingsDataStore = SettingsDataStore(context = this)
         viewModelUserList = ViewModelProvider(this)[ViewModelHome::class.java]
-        val nameUser = intent.extras?.getString("nameUser").toString()
-        val secondNameUser = intent.extras?.getString("secondNameUser").toString()
-        val emailUser = intent.extras?.getString("emailUser").toString()
-        val idCollectionList = intent.extras?.getString("idCollection").toString()
-        val date = Timestamp(1714416433,  533000000).toDate().time
-//        val formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy, hh:mm:ss a 'UTC-6'")
-        println("FECHA: "+date)
+        alertDialogCustom = AlertDialogCustom(viewModelUserList)
         setContent {
             SwiftShopTheme {
+                userStateUpdate = remember { mutableStateOf(UserStateUpdate()) }
                 val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
+                val alertDialogState = remember { mutableStateOf(false) }
+                val stateIDCollection = remember { mutableStateOf("") }
+                val stateDeleteButton = remember { mutableStateOf(false) }
+                stateProgressBar = remember { mutableStateOf(false) }
+                val stateDataUser = remember { mutableStateOf("")}
+                val searchTextToList = remember { mutableStateListOf("") }
+                val shippingList = ShoppingListComponet(
+                    stateDeleteButton,
+                    viewModelUserList,
+                    userStateUpdate,
+                    alertDialogState
+                )
+
+                viewModelUserList.stateNextActivity.observe(this, Observer {
+                    if (it){
+                        //Intent(applicationContext, )
+                    }
+                })
                 settingsDataStore.preferencesFlow.asLiveData().observe(this, Observer {
                     if (!it){
                         finish()
                     }
                 })
+                viewModelUserList.dataUserState.observe(this, Observer {
+                    stateDataUser.value = it.count.toString()
+                })
+                viewModelUserList.delete.observe(this, Observer {
+                    val array = viewModelUserList.dataUserState.value?.idDocuments
+                    if (array == null){
+                        stateProgressBar.value = false
+                    }
+                })
                 settingsDataStore.preferencesFlowUsers.asLiveData().observe(this, Observer {
-                    println("DATASTORE: ${it}")
-                    if (it!=null && it.toString().isNotEmpty()){
+                    if (it!=null && it.toString().isNotEmpty()) {
+                        stateIDCollection.value = it.toString()
+                        stateProgressBar.value = true
                         viewModelUserList.userLists(it.toString())
                     }
                 })
@@ -110,103 +140,235 @@ class ShoppingList : ComponentActivity() {
                     if (it!=null){
                         listDataState.value=it
                     }
+                    stateProgressBar.value = false
+                })
+
+                viewModelUserList.insertList.observe(this, Observer {
+                    if (it){
+                        Toast.makeText(this, "Se agrego correctamente la lista", Toast.LENGTH_SHORT).show()
+                    } else{
+                        Toast.makeText(this, "No se pudo ingresar su lista, intente mas tarde", Toast.LENGTH_SHORT).show()
+                    }
+                })
+
+                viewModelUserList.updateList.observe(this, Observer {
+                    if (it){
+                        Toast.makeText(this, "Se actualizo la lista correctamente", Toast.LENGTH_SHORT).show()
+                    } else{
+                        Toast.makeText(this, "No se pudo actualizar los datos, intente mas tarde", Toast.LENGTH_SHORT).show()
+                    }
                 })
 
                 Scaffold(
-                    topBar = { toobar() },
-                    floatingActionButton = { FloatButton() },
+                    topBar = { Toobar(stateDeleteButton,stateDataUser,stateIDCollection)},
+                    floatingActionButton = { FloatButton(alertDialogState) },
                     bottomBar = { BottomNavigationBar() }
                 ){innerPadding->
+                    if (stateProgressBar.value){
+                        IndeterminateIndicator()
+                    }
                     Column(
                         modifier = Modifier
                             .padding(innerPadding),
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
+                        if (alertDialogState.value){
+                            //validate if inserted or updated
+                            if (userStateUpdate.value.name.isNullOrEmpty()){
+                                alertDialogCustom.AlertDialogAdd(alertDialogState, stateIDCollection.value)
+                            }else{
+                                alertDialogCustom.AlertDialogAdd(
+                                    alertDialogState,
+                                    stateIDCollection.value,
+                                    UserStateUpdate(
+                                        userStateUpdate.value.uuiDocument,
+                                        userStateUpdate.value.name,
+                                        userStateUpdate.value.date
+                                    )
+                                )
+                            }
+                        }
                         Divider()
-                        ShoppingList(listDataState)
+                        val text = remember { mutableStateOf("") }
+                        val active = remember { mutableStateOf(false) }
+                        SearchBarCustom(text, active, listDataState)
+                        shippingList.ShoppingList(listDataState)
                     }
                 }
             }
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun SearchBarCustom(
+        text: MutableState<String>,
+        active: MutableState<Boolean>,
+        listDataState: MutableState<List<UserList>>
+    ) {
+        val searchHistory = remember { mutableStateListOf("") }
+        val listNewState = remember { mutableStateOf( emptyList<UserList>()) }
+        SearchBar(modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp, 0.dp, 5.dp, 0.dp),
+            query = text.value,
+            onQueryChange = { text.value = it },
+            onSearch = {
+                active.value = false
+                listNewState.value = listDataState.value
+                val newList = listNewState.value.filter {it.name!!.contains(text.value)}
+                listDataState.value = newList
+                searchHistory.add(text.value)
+            },
+            active = active.value,
+            onActiveChange = {
+                active.value = it
+            },
+            placeholder = {
+                Text(text = "Buscar lista")
+            },
+            trailingIcon = {
+                if (active.value) {
+                    Icon(
+                        modifier = Modifier.clickable {
+                            if (text.value.isNotEmpty()) {
+                                text.value = ""
+                            } else {
+                                active.value = false
+                            }
+                        },
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close icon"
+                    )
+                    listDataState.value = viewModelUserList.list.value!!
+                }else{
+                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
+                }
+            }){
+            searchHistory.forEach {
+                if (it.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .padding(all = 14.dp)
+                            .clickable {
+                                text.value = it
+                                active.value = false
+                                listNewState.value = listDataState.value
+                                val newList = listNewState.value.filter {it.name!!.contains(text.value)}
+                                //if (newList.isNotEmpty()) {
+                                listDataState.value = newList
+                            }
+                    ) {
+                        Icon(imageVector = Icons.Default.Refresh,contentDescription = null)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = it)
+                    }
+                }
+            }
+            Divider()
+            Text(
+                modifier = Modifier
+                    .padding(all = 14.dp)
+                    .fillMaxWidth()
+                    .clickable {
+                        searchHistory.clear()
+                    },
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                text = "clear all history"
+            )
+        }
+    }
+
     override fun onBackPressed() {
         super.onBackPressed()
-        println("backPResed")
         finishAffinity(); // Termina la pila de actividades
     }
     data class ListProduct(val nameList: String, val date: String)
-    @SuppressLint("NotConstructor")
-    @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun ShoppingList(list: MutableState<List<UserList>>?) {
-        LazyColumn(Modifier.fillMaxHeight()) {
-            items(list!!.value){
-                ItemList(it)
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun ItemList(list: UserList) {
-        val date = list.date?.toDate()
-        val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale.getDefault())
-        val formattedDate = dateFormat.format(date)
-        Card(
-            onClick = { /* Do something */ },
-            Modifier
-                .fillMaxWidth()
-                .size(width = 180.dp, height = 80.dp)
-                .padding(5.dp)
+    fun IndeterminateIndicator() {
+        LinearProgressIndicator(
+            Modifier.fillMaxWidth()
         )
-        {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(5.dp)) {
-                Text(
-                    list.name.toString(),
-                    Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    formattedDate,
-                    Modifier.align(Alignment.CenterEnd),
-                    fontStyle = FontStyle.Italic
-                )
-            }
-        }
     }
-
     @RequiresApi(Build.VERSION_CODES.O)
     @Composable
-    fun toobar(){
+    fun Toobar(
+        stateDeleteButton: MutableState<Boolean>?,
+        stateDataUser: MutableState<String>?,
+        stateIDCollection: MutableState<String>?
+    ) {
         val textStle = androidx.compose.ui.text.TextStyle(
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
         Row (Modifier.fillMaxWidth(1f)){
-            Text(
-                modifier = Modifier
-                    .padding(15.dp,10.dp,0.dp,0.dp),
-                text = "Swift Shop",
-                color = MaterialTheme.colorScheme.secondary,
-                style = textStle
-            )
+            if (!stateDeleteButton!!.value){
+                Text(
+                    modifier = Modifier
+                        .padding(15.dp,10.dp,0.dp,0.dp),
+                    text = "Swift Shop",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = textStle
+                )
+            } else{
+                Backbutton(stateDeleteButton)
+                Text(
+                    text = stateDataUser!!.value,
+                    modifier = Modifier
+                        .padding(5.dp,10.dp,0.dp,0.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = textStle
+                )
+            }
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.CenterVertically),
                 horizontalArrangement = Arrangement.End
             ){
-                DropDownMenu()
+                //DropDownMenu()
+                if (!stateDeleteButton.value){
+                    DropDownMenu()
+
+                } else {
+                    DeleteButton(stateDeleteButton, stateIDCollection)
+                }
+
             }
         }
+    }
 
+    @Composable
+    fun Backbutton(stateDeleteButton: MutableState<Boolean>) {
+        Box {
+            IconButton(onClick = {
+                stateDeleteButton.value = false
+                viewModelUserList.stateDataUser(0, null)
+            }) {
+                Icon(Icons.Default.ArrowBack , contentDescription = "delete")
+            }
+        }
+    }
+
+    @Composable
+    fun DeleteButton(
+        stateDeleteButton: MutableState<Boolean>,
+        stateIDCollection: MutableState<String>?
+    ) {
+        Box {
+            IconButton(onClick = {
+                stateDeleteButton.value = false
+                val idsDocumentList = viewModelUserList.dataUserState.value?.idDocuments
+                stateProgressBar.value = true
+                idsDocumentList?.forEach {
+                    viewModelUserList.delete(stateIDCollection?.value,it)
+                }
+                viewModelUserList.stateDataUser(0, null)
+            }) {
+                Icon(Icons.Default.Delete , contentDescription = "delete")
+            }
+        }
     }
 
     @SuppressLint("SuspiciousIndentation")
@@ -262,7 +424,7 @@ class ShoppingList : ComponentActivity() {
                         Icon(icons[index], contentDescription = item)
                         //BadgeBoxCountOrder()
                         if (index == 1){
-                            BadgeBoxCountOrder("10,000",icon = icons[index])
+                            BadgeBoxCountOrder("0",icon = icons[index])
                         }
                     },
                     label = { Text(item) },
@@ -286,7 +448,7 @@ class ShoppingList : ComponentActivity() {
 
     @SuppressLint("UnrememberedMutableState")
     @Composable
-    fun FloatButton() {
+    fun FloatButton(alertDialogState: MutableState<Boolean>?) {
         var rotation by remember { mutableStateOf(0f) }
         var expanded by remember { mutableStateOf(false) }
         val contextForToast = LocalContext.current.applicationContext
@@ -313,13 +475,14 @@ class ShoppingList : ComponentActivity() {
                     Text("Agregar Lista")
                 },
                     onClick = {
-                        Toast.makeText(contextForToast, "¡Suscrito😎!", Toast.LENGTH_SHORT).show()
+                        userStateUpdate.value = UserStateUpdate()
+                        alertDialogState?.value = true
                         expanded = false
                         rotation = 0.0F
                     },
                     leadingIcon = {
                         Icon(
-                            Icons.Outlined.Favorite,
+                            Icons.Outlined.Add,
                             contentDescription = null,
                             tint = Color.Red
                         )
@@ -334,7 +497,7 @@ class ShoppingList : ComponentActivity() {
                     },
                     leadingIcon = {
                         Icon(
-                            Icons.Outlined.Favorite,
+                            Icons.Outlined.Clear,
                             contentDescription = null,
                             tint = Color.Red
                         )
@@ -354,21 +517,21 @@ class ShoppingList : ComponentActivity() {
             UserList("i1289askjdnk","Aurrera", Timestamp(1714416433,  533000000))
         )
         val listDataState = remember { mutableStateOf( emptyList<UserList>()) }
+        val shippingList = ShoppingListComponet(null, null, userStateUpdate, null)
         listDataState.value = list
         SwiftShopTheme {
             Scaffold(
-                topBar = { toobar() },
-                floatingActionButton = { FloatButton() },
+                topBar = { Toobar(null, null, null) },
+                floatingActionButton = { FloatButton(null) },
                 bottomBar = { BottomNavigationBar() }
             ) { innerPadding ->
-                println(innerPadding)
                 Column(
                     modifier = Modifier
                         .padding(innerPadding),
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Divider()
-                    ShoppingList(listDataState)
+                    shippingList.ShoppingList(listDataState)
                 }
             }
         }
