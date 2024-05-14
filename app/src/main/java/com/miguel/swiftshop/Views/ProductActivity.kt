@@ -15,13 +15,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +57,25 @@ class ProductActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBarCustom(text: MutableState<String>, active: MutableState<Boolean>) {
+    SearchBar(modifier = Modifier.fillMaxWidth(),
+        query = text.value,
+        onQueryChange = { text.value = it },
+        onSearch = {  },
+        active = active.value,
+        onActiveChange = {
+            active.value = it
+        },
+        placeholder = {
+            Text(text = "Enter your query")
+        },
+        trailingIcon = {
+            Icon(imageVector = Icons.Default.Search, contentDescription = null)
+        }) {}
+}
+
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
@@ -59,15 +84,17 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview2() {
     SwiftShopTheme {
-        Column {
-            Greeting("Android")
+        val text = remember { mutableStateOf("") }
+        val active = remember { mutableStateOf(false) }
+        SearchBarCustom(text, active)
+        Greeting("Android")
             ItemListTest(UserList("i1289askjdnk","Home Depot Av. Canek", Timestamp(1714416433,  533000000)))
         }
-    }
 }
 
 @Composable
@@ -87,7 +114,7 @@ fun ItemListTest(list: UserList) {
                             list.name.toString(),
                             Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp,5.dp,10.dp,0.dp)
+                                .padding(10.dp, 5.dp, 10.dp, 0.dp)
                                 .wrapContentWidth(Alignment.Start),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium

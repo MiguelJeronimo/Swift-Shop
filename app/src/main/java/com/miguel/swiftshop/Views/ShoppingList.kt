@@ -7,18 +7,24 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Clear
@@ -37,11 +43,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,7 +101,7 @@ class ShoppingList : ComponentActivity() {
                 val stateDeleteButton = remember { mutableStateOf(false) }
                 stateProgressBar = remember { mutableStateOf(false) }
                 val stateDataUser = remember { mutableStateOf("")}
-                val stateNextActivity = remember { mutableStateOf(false) }
+                val searchTextToList = remember { mutableStateListOf("") }
                 val shippingList = ShoppingListComponet(
                     stateDeleteButton,
                     viewModelUserList,
@@ -180,10 +189,94 @@ class ShoppingList : ComponentActivity() {
                             }
                         }
                         Divider()
+                        val text = remember { mutableStateOf("") }
+                        val active = remember { mutableStateOf(false) }
+                        SearchBarCustom(text, active, listDataState)
                         shippingList.ShoppingList(listDataState)
                     }
                 }
             }
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun SearchBarCustom(
+        text: MutableState<String>,
+        active: MutableState<Boolean>,
+        listDataState: MutableState<List<UserList>>
+    ) {
+        val searchHistory = remember { mutableStateListOf("") }
+        val listNewState = remember { mutableStateOf( emptyList<UserList>()) }
+        SearchBar(modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp, 0.dp, 5.dp, 0.dp),
+            query = text.value,
+            onQueryChange = { text.value = it },
+            onSearch = {
+                active.value = false
+                listNewState.value = listDataState.value
+                val newList = listNewState.value.filter {it.name!!.contains(text.value)}
+                listDataState.value = newList
+                searchHistory.add(text.value)
+            },
+            active = active.value,
+            onActiveChange = {
+                active.value = it
+            },
+            placeholder = {
+                Text(text = "Buscar lista")
+            },
+            trailingIcon = {
+                if (active.value) {
+                    Icon(
+                        modifier = Modifier.clickable {
+                            if (text.value.isNotEmpty()) {
+                                text.value = ""
+                            } else {
+                                active.value = false
+                            }
+                        },
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close icon"
+                    )
+                    listDataState.value = viewModelUserList.list.value!!
+                }else{
+                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
+                }
+            }){
+            searchHistory.forEach {
+                if (it.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .padding(all = 14.dp)
+                            .clickable {
+                                text.value = it
+                                active.value = false
+                                listNewState.value = listDataState.value
+                                val newList = listNewState.value.filter {it.name!!.contains(text.value)}
+                                //if (newList.isNotEmpty()) {
+                                listDataState.value = newList
+                            }
+                    ) {
+                        Icon(imageVector = Icons.Default.Refresh,contentDescription = null)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = it)
+                    }
+                }
+            }
+            Divider()
+            Text(
+                modifier = Modifier
+                    .padding(all = 14.dp)
+                    .fillMaxWidth()
+                    .clickable {
+                        searchHistory.clear()
+                    },
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                text = "clear all history"
+            )
         }
     }
 
